@@ -1,0 +1,38 @@
+---
+title: "Material e métodos"
+output: html_document
+---
+
+```{r}
+require(rstanarm)
+require(dplyr)
+```
+
+## A dúvida
+
+```{r}
+duvida = read.csv('./data/tapajos.csv')
+duvida = duvida %>% filter(!is.na(ida))
+```
+
+O órgão ambiental do Pará, acabeu de receber um inventário como parte de um processo de intervenção ambiental. Com base no inventário, a empresa considerou para o manejo, uma taxa de crescimento diamétrica de `mean(na.omit(duvida$ida))` cm/ano.
+
+O analista deseja saber se o valores de incremento apresentado pela empresa está dentro do que se conhece sobre a área. Para isto, ele vai usar a estatisticas Bayesiana para analisar os dados.
+
+## Análise a posteriori
+
+```{r}
+post = stan_glm(ida ~ 1, 
+                family = gaussian(link = 'identity'), 
+                data = duvida,
+                prior_intercept = normal(1, 0.20))
+```
+
+```{r}
+plot(post)
+```
+
+
+```{r}
+posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
+```

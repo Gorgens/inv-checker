@@ -1,0 +1,63 @@
+---
+title: "My Example Computed Manuscript"
+subtitle: Created in Rmarkdown
+titlerunning: Example computed manuscript
+date: "`r format(Sys.time(), '%d %b %Y %H:%M:%S %Z')`"
+author: "Vitor Simplicio"
+output:
+  bookdown::html_document2: default
+  pdf_document: default
+  bookdown::word_document2: default
+  bookdown::pdf_book:
+    base_format: rticles::springer_article
+    extra_dependencies: booktabs
+abstract: "A mock computed manuscript created in RStudio using {Rmarkdown}. The {Bookdown} and {Rticles} packages were used to output the text in Springer Nature's desired
+  manuscript format. \n"
+bibliography: bibliography.bib
+biblio-style: spbasic
+authors:
+- name: Jeffrey M. Perkel
+  address: Springer Nature, 1 New York Plaza, New York, NY
+  email: jeffrey.perkel@nature.com
+csl: abnt.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      echo = FALSE)
+```
+
+```{r load-libraries, include=FALSE}
+# load libraries
+library(tidyverse)
+library(ggbeeswarm)
+library(bookdown)
+```
+
+# Introdução {#intro}
+
+```{r get-intro, child="01introducao.Rmd"}
+```
+
+# Material e métodos {#material}
+
+```{r get-mm, child="02material.Rmd"}
+```
+
+# Resultados {#resultados}
+
+```{r get-mm, child="03resultados.Rmd"}
+```
+
+# Discussão {#discussao}
+
+```{r get-mm, child="04discussao.Rmd"}
+```
+
+# Conclusão {#conclusao}
+
+```{r get-mm, child="05conclusao.Rmd"}
+```
+
+# Referências
