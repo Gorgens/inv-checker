@@ -3,10 +3,552 @@ title: "Material e métodos"
 output: html_document
 ---
 
-```{r}
-require(rstanarm)
-require(dplyr)
+
+
+```{r, echo=FALSE}
+require(rstanarm) #Bayes
+require(dplyr) #Manipulação de dados
+require(tidyverse)#Manipulação de dados
+require(forestmangr) # Distribuição diamétrica
+require(readr) # abrir arquivos excel
+require(benford.analysis) # Análise de benford
+require(ggplot2) #Criação de gráficos
+require(scales) #Edição de gráficos
+require(vegan) # Índices de diversidade
+require(outliers) #Detecção de outliers
+require(moments) #Curtose e assimetria
+
 ```
+
+
+#Buscando a base de dados
+```{r}
+BON_A01_2014_Inventory = read_csv("./data/BON_A01_2014_Inventory.csv")
+BON_A01_2014_Inventory$Area_par = c(2500) 
+
+```
+
+# modelo para estimar o volume: Kopezki-Gherardt (H.Tonini&R.A.Borges,2015).
+```{r}
+  VTCC_KG = function(dap){                                                             return(0.51168+0.000911*dap^2)  
+  }
+
+#Calculando o volume individual das árvores
+BON_A01_2014_Inventory$Vol = VTCC_KG(BON_A01_2014_Inventory$DBH)  
+
+```
+
+#Análise exploratória da base de dados
+```{r}
+#Número de parcelas
+N_par = length(unique(BON_A01_2014_Inventory$plot_ID))
+
+# Área da parcela
+Area_par = BON_A01_2014_Inventory$Area_par
+
+# Área total amostrada
+AT = N_par* mean(BON_A01_2014_Inventory$Area_par)
+
+# Número de árvores amostradas
+N_arv = nrow(BON_A01_2014_Inventory)
+
+# Volume por hecatre
+vol_h = as.numeric(sum(BON_A01_2014_Inventory$Vol)) / (AT/10000)
+
+
+
+Tabela_de_Atributos = data.frame(Inventários = "BON_A01_2014_Inventory",
+                                 N_parcelas = N_par,
+                                 Área_parcela = mean(Area_par),
+                                 Área_TA = AT,
+                                 N_árvores = N_arv,
+                                 Vol_Ha = round(vol_h,2))
+```
+
+
+# Estatística descritiva: Medidas de posição e Medidas de dispersão (assimetria a direita)
+```{r}
+ Media = mean(BON_A01_2014_Inventory$DBH)
+ Mediana = median(BON_A01_2014_Inventory$DBH)
+
+ DAP_maximo = max(BON_A01_2014_Inventory$DBH)
+ Desvio_padrao = sd(BON_A01_2014_Inventory$DBH)
+ Coef_Var = ((Desvio_padrao/Media)*100)
+ 
+ q1_DAP = quantile(BON_A01_2014_Inventory$DBH, 0.25) 
+ q3_DAP = quantile(BON_A01_2014_Inventory$DBH, 0.75)
+ iqr_DAP = IQR(BON_A01_2014_Inventory$DBH)
+ ass_DAP = skewness(BON_A01_2014_Inventory$DBH)
+ cur_DAP = kurtosis(BON_A01_2014_Inventory$DBH)
+
+Tabela_de_Atributos$DAP_ME = round(Media,2)
+Tabela_de_Atributos$DAP_MD = round(Mediana,2)
+Tabela_de_Atributos$DAP_Máx = round(DAP_maximo,2)
+Tabela_de_Atributos$DAP_DP = round(Desvio_padrao,2)
+Tabela_de_Atributos$DAP_CV = round(Coef_Var,2)
+Tabela_de_Atributos$Q1_DAP = round(q1_DAP,2)
+Tabela_de_Atributos$Q3_DAP = round(q3_DAP,2)
+Tabela_de_Atributos$IQR_DAP = round(iqr_DAP,2)
+Tabela_de_Atributos$ASS_DAP = round(ass_DAP,2)
+Tabela_de_Atributos$CUR_DAP = round(cur_DAP,2)
+
+```
+
+
+# Crinado uma função com o modelo de MEYER: CC= 5, 10
+```{r}
+meyer =  function (file,plot,dbh,plot_area, class_interval){
+  (bdq_meyer(file, plot , dbh ,  plot_area ,  class_interval, 
+     dbh_min  =  5 ,  licourt_index  =  2, output = "coefs" ))
+}
+
+# Aplicando a função aos dados
+
+Meyer_5 = data.frame(meyer(BON_A01_2014_Inventory, "plot_ID", "DBH","Area_par",5 ))
+
+Meyer_10 = data.frame(meyer(BON_A01_2014_Inventory, "plot_ID", "DBH","Area_par",10 ))
+
+#Atribuindo valores a Tabela_Atributos
+
+Tabela_de_Atributos$b0_Meyer_5 = Meyer_5[1,1]
+Tabela_de_Atributos$b1_Meyer_5= Meyer_5[2,1]
+
+
+Tabela_de_Atributos$b0_Meyer_10 = Meyer_10[1,1]
+Tabela_de_Atributos$b1_Meyer_10= Meyer_10[2,1]
+
+```
+
+# Quociente de Liocourt
+```{r}
+QL =  function (file,plot,dbh,plot_area,class_interval){
+  (bdq_meyer(file, plot , dbh ,  plot_area ,  class_interval, 
+     dbh_min  =  5 ,  licourt_index  =  2, output = "table" ))
+  }
+
+
+
+VQL_5 = QL(BON_A01_2014_Inventory, "plot_ID", "DBH","Area_par",5)
+VQL_5[is.na(VQL_5)] = 0
+
+LicourtM_5 = mean(VQL_5$q)
+LicourtD_5 = sd(VQL_5$q)
+
+VQL_10 = QL(BON_A01_2014_Inventory, "plot_ID", "DBH","Area_par",10)
+VQL_10[is.na(VQL_10)] = 0
+
+LicourtM_10 = mean(VQL_10$q)
+LicourtD_10 = sd(VQL_10$q)
+
+
+
+Tabela_de_Atributos$q.LicourtM_5 = LicourtM_5
+Tabela_de_Atributos$q.LicourtD_5 = LicourtD_5
+Tabela_de_Atributos$q.LicourtM_10 = LicourtM_10
+Tabela_de_Atributos$q.LicourtD_10 = LicourtD_10
+
+```
+
+
+#Extraindo o primeiro dígito do DAP e criando nova coluna na base principal.
+```{r}
+#BON_A01_2014_Inventory
+#Primeiro dígito
+Pd_DAP1 = extract.digits(BON_A01_2014_Inventory$DBH, number.of.digits = 1,
+                          sign ="positive" ,
+                          discrete = TRUE, 
+                          round = TRUE) 
+Pd_DAP1$data = NULL
+colnames(Pd_DAP1) = c("Pd_Dap1")
+BON_A01_2014_Inventory$Pd_DAP = Pd_DAP1
+
+
+```
+
+#Calculando a frequência dos dígitos
+```{r}
+#BON_A01_2014_Inventory
+BON_A01_2014_Inventory_PdDAP = data.frame(t(table(Pd_DAP1)))[,-1]
+
+BON_A01_2014_Inventory_PdDAP$Pd_DAP1 = as.numeric(levels(BON_A01_2014_Inventory_PdDAP$Pd_DAP1))
+
+BON_A01_2014_Inventory_PdDAP = BON_A01_2014_Inventory_PdDAP %>% 
+  mutate(Fr = Freq/sum(Freq))
+
+
+```
+
+#Gráfico distribuição de Benford - DAP
+```{r}
+#BON_A01_2014_Inventory
+ggplot(BON_A01_2014_Inventory_PdDAP, aes(Pd_DAP1, Fr))+geom_bar(fill="darkgreen", stat="identity")+
+  theme_classic()+
+  scale_y_continuous(labels = percent_format(),
+                     limits = c(0,0.50), breaks = seq(0,0.50,0.05))+
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1))+
+  labs(title="Lei de Benford - BON_A01_2014_Inventory",
+       x= NULL, y= NULL) +
+  geom_text(aes(label = percent(Fr)),position = position_dodge(1),
+            hjust = 0.4, vjust = -0.5)+
+  theme(legend.position = c(0.9,0.15),
+        plot.title = element_text(hjust = 0.5,size = 16))
+
+
+```
+#Aplicando a Lei de Benford ao primeiro dígito DAP. 
+```{r}
+#BON_A01_2014_Inventory
+Benf01 = benford(BON_A01_2014_Inventory$DBH,
+               number.of.digits = 1,
+               sign = "positive")
+
+Benf01
+plot(Benf01)
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_Dap1 = Benf01$MAD
+
+```
+
+#Aplicando a Lei de Benford ao segundo dígito DAP. 
+```{r}
+#BON_A01_2014_Inventory
+Benf02 = benford(BON_A01_2014_Inventory$DBH,
+               number.of.digits = 1,
+               sign = "positive")
+
+Benf02
+plot(Benf02)
+
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_Dap2 = Benf02$MAD
+
+```
+
+#Aplicando a Lei de Benford ao dois primeiros dígitos DAP. 
+```{r}
+#BON_A01_2014_Inventory
+Benf01_2 = benford(BON_A01_2014_Inventory$DBH,
+               number.of.digits = 2,
+               sign = "positive")
+
+Benf01_2
+plot(Benf01_2)
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_Dap1_2 = Benf01_2$MAD
+
+```
+
+#Aplicando a Lei de Benford ao primeiro dígito após a virgula - DAP. 
+```{r}
+#BON_A01_2014_Inventory
+Benf_PP_01 = benford(BON_A01_2014_Inventory$DBH,
+               number.of.digits = 2,
+               sign = "positive")
+
+Benf_PP_01
+plot(Benf_PP_01)
+
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_PP_01 = Benf_PP_01$MAD
+
+```
+# Filtrando a base de dados
+```{r}
+BON_A01_2014_Inventory = read_csv("~/Mestrado UFVJM/Dissertação/inv-checker/data/BON_A01_2014_Inventory.csv")
+BON_A01_2014_Inventory = BON_A01_2014_Inventory %>% filter(!is.na(DBH))%>% filter(!is.na(scientific_name))%>% filter(!is.na(family_name))
+BON_A01_2014_Inventory$Area_par = c(2500)
+
+```
+
+# Frequência de espécies e família
+```{r}
+#BON_A01_2014_Inventory
+BON_A01_2014_Inventory_Esp = data.frame(BON_A01_2014_Inventory$scientific_name)
+
+BON_A01_2014_Inventory_Esp = BON_A01_2014_Inventory %＞%                                group_by(scientific_name) %＞%
+ summarise(n = n())
+
+BON_A01_2014_Inventory_Fam = data.frame(BON_A01_2014_Inventory$family_name)
+
+BON_A01_2014_Inventory_Fam = BON_A01_2014_Inventory %＞%                                group_by(family_name) %＞%
+ summarise(n = n())
+
+```
+
+
+#Aplicando a Lei de Benford ao número de árvores por espécies
+```{r}
+#BON_A01_2014_Inventory
+Benf_Esp = benford(BON_A01_2014_Inventory_Esp$n,
+               number.of.digits = 1,
+               sign = "positive")
+
+Benf_Esp
+plot(Benf_Esp)
+
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_spp. = Benf_Esp$MAD
+
+```
+#Aplicando a Lei de Benford ao número de árvores por família
+```{r}
+#BON_A01_2014_Inventory
+Benf_Fam = benford(BON_A01_2014_Inventory_Fam$n,
+               number.of.digits = 1,
+               sign = "positive")
+
+Benf_Fam
+plot(Benf_Fam)
+
+
+# Adicionando valor de MAD Tabela de atributos
+
+Tabela_de_Atributos$MAD_Benf_Fam = Benf_Fam$MAD
+
+```
+
+
+# Densidade de Kernel - Espécie e Família 
+```{r}
+plot(density(BON_A01_2014_Inventory_Esp$n)) 
+
+DK_E = density(BON_A01_2014_Inventory_Esp$n)
+
+plot(density(BON_A01_2014_Inventory_Fam$n)) 
+
+DK_F = density(BON_A01_2014_Inventory_Fam$n)
+
+# Adicionando largura de banda (desvio padrão de kernel - suavização)
+
+Tabela_de_Atributos$K_Fr_spp. = DK_E$bw
+Tabela_de_Atributos$K_Fr_Fam = DK_F$bw
+```
+
+
+# Espécies mais abundantes
+```{r}
+# Aspidosperma excelsum;(5-6)
+# Bertholletia excelsa;(10) ~
+# Caryocar villosum;
+# Conceveiba guianensis;
+# Couratari guianensis; (23)
+# Dinizia excelsa;
+# Dipteryx odorata;(29) ~
+# Eperua rubiginosa;
+# Eschweilera coriacea.(33)
+# Goupia glabra;
+# Manilkara huberi;(49)~
+# Micropholis venulosa;
+# Minquartia guianensis;
+# Nectandra rubra;
+# Qualea albiflora;
+# Sloanea grandiflora; (69)
+# Tabebuia serratifolia;(73)
+
+```
+
+
+# Estrutura horizontal
+```{r}
+#BON_A01_2014_Inventory
+
+# Tamanho da unidade amostral em m²
+UA =  mean(Area_par)
+
+# Número de parcelas
+N_UA = length(unique(BON_A01_2014_Inventory$plot_ID))
+
+# Área total amostrada
+AT = UA*N_UA
+
+# Calcular área transversal dos indivíduos amostrados
+BON_A01_2014_Inventory$g = pi*BON_A01_2014_Inventory$DBH^2/40000 
+
+# Número de indivíduos por espécie
+N_especie = table(BON_A01_2014_Inventory$scientific_name)
+
+# Densidades absoluta 
+DA = N_especie*10000/AT
+
+# Densidades relativa
+DR = DA/sum(DA)*100
+
+# Frequências absoluta 
+FA = sapply(unique(BON_A01_2014_Inventory$scientific_name),
+         function(x){
+           length(unique(subset(BON_A01_2014_Inventory,
+                                BON_A01_2014_Inventory$scientific_name==x)$plot_ID))/N_UA
+           })*100
+FA = FA[order(names(FA))]
+
+# Frequências relativa
+FR = FA/sum(FA)*100
+
+# Dominâncias absoluta e relativa
+DOA = aggregate(BON_A01_2014_Inventory$g, list( BON_A01_2014_Inventory$scientific_name), sum)$x*10000/AT
+
+# Dominâncias  relativa
+DOR = DOA/sum(DOA)*100
+
+
+# Tabela com os resultados
+tabela_EH = data.frame(Espécie=names(N_especie),
+                          N_especie=as.vector(N_especie),
+                          DA=round(as.vector(DA),1),
+                          DR=round(as.vector(DR),1),
+                          FA=round(as.vector(FA),1),
+                          FR=round(as.vector(FR),1),
+                          DoA=round(DOA,1),
+                          DoR=round(DOR,1),
+                          IVI=round(as.vector(DR+FR+DOR),1))
+
+tabela_EH  = tabela_EH [order(tabela_EH$Espécie ,decreasing = F),]
+
+
+#Atribuindo valores a tabela
+
+Tabela_de_Atributos$BE_EH = tabela_EH[tabela_EH$Espécie == "Bertholletia excelsa", c(4, 6, 8, 9)]
+
+Tabela_de_Atributos$DO_EH = tabela_EH[tabela_EH$Espécie == "Dipteryx odorata", c(4, 6, 8, 9)]
+
+Tabela_de_Atributos$MH_EH = tabela_EH[tabela_EH$Espécie == "Manilkara huberi", c(4, 6, 8, 9)]
+
+
+# Bertholletia excelsa;(9) ~
+# Dipteryx odorata;(29) ~
+# Manilkara huberi;(49)~
+
+
+```
+
+# Índice de Payandeh: 
+```{r}
+# Criando matriz de espécies nas colunas e parcelas nas linhas
+Matriz_BON_A01_2014_Inventory = table(BON_A01_2014_Inventory$plot_ID, BON_A01_2014_Inventory$scientific_name)
+
+# Número de indivíduos por espécie
+N_especie = table(BON_A01_2014_Inventory$scientific_name)
+
+#Calculo
+MI = apply(Matriz_BON_A01_2014_Inventory,2,mean)
+Ssquare = apply(Matriz_BON_A01_2014_Inventory,2,var)
+Indice_Payandeh = Ssquare/MI
+Indice_Payandeh
+
+# Tabela com os resultados
+tabela_IP = data.frame(Espécie=names(N_especie),
+                          N_especie=as.vector(N_especie),
+                          Indice_Payandeh = round(as.vector(Indice_Payandeh),1))
+
+tabela_IP = tabela_IP[order(tabela_IP$Indice_Payandeh,decreasing = T),]
+
+Tabela_de_Atributos$BE_PI = tabela_IP[tabela_IP$Espécie == "Bertholletia excelsa", 3] 
+
+Tabela_de_Atributos$DO_PI = tabela_IP[tabela_IP$Espécie == "Dipteryx odorata", 3]
+
+Tabela_de_Atributos$MH_PI = tabela_IP[tabela_IP$Espécie == "Manilkara huberi", 3]
+
+
+
+# Bertholletia excelsa;(9) ~
+# Dipteryx odorata;(29) ~
+# Manilkara huberi;(49)~
+
+```
+
+
+# Modelo da densidade e diâmetro de Reineke (1933): 
+```{r}
+MDDR = data.frame(Inventário = "BON_A01_2014_Inventory",
+                  g = 0,
+                  N = 0,
+                  d = 0)
+
+BON_A01_2014_Inventory$g = ((BON_A01_2014_Inventory$DBH^2)* pi)/40000 
+
+Modelo_R = sum(BON_A01_2014_Inventory$g)/nrow(BON_A01_2014_Inventory)
+
+MDDR$g = Modelo_R
+MDDR$N = nrow(BON_A01_2014_Inventory)
+MDDR$d = sqrt((MDDR$g*(40000))/pi)
+
+#reg = lm(log(N) ~ log(d), MDDR)
+#summary(reg)
+
+```
+
+
+# Diversidade Alfa: 
+```{r}
+# Matriz de frequência das espécies
+M_freq_BON_A01_2014_Inventory =  xtabs(~plot_ID+scientific_name, BON_A01_2014_Inventory)
+
+#Número de indivíduos por parcela
+N_ind_parc = rowSums(M_freq_BON_A01_2014_Inventory)
+
+# Número total de indivíduos amostrados
+N_ind_tot = sum(N_ind_parc)
+
+# Número de espécies
+N_sp_parc = specnumber(M_freq_BON_A01_2014_Inventory)
+
+# Número de espécies total
+N_sp_tot = specnumber(colSums(M_freq_BON_A01_2014_Inventory))
+
+# Índice de Shannon para toda a comunidade
+simpson = diversity(colSums(M_freq_BON_A01_2014_Inventory), index = 'shannon')
+
+# Índice de simpson para toda a comunidade
+shannon = diversity(colSums(M_freq_BON_A01_2014_Inventory), index = 'simpson')
+
+# Equabilidade de Pielou para toda comunidade
+pielou = shannon/log(N_sp_tot)
+
+# Adicionando a Tabela de atributos
+
+Tabela_de_Atributos$Simpson = round(simpson,2)
+Tabela_de_Atributos$Shannon = round(shannon,2)
+Tabela_de_Atributos$Pielou = round(pielou,2)
+```
+
+
+# Dectecção de outliers - Espécies de maior valor econômico   
+```{r}
+outliers_BE = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Bertholletia excelsa", ] 
+OT_BE= boxplot(outliers_BE$DBH)
+
+outliers_DO = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Dipteryx odorata", ] 
+OT_DO= boxplot(outliers_DO$DBH)
+
+outliers_MH = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Manilkara huberi", ]
+OT_MH= boxplot(outliers_MH$DBH)
+
+# Bertholletia excelsa;(9) ~
+# Dipteryx odorata;(29) ~
+# Manilkara huberi;(49)~
+
+
+# Adicionando a de atributos
+Tabela_de_Atributos$N_OT_BE = sum(OT_BE$group)
+Tabela_de_Atributos$N_OT_DO = sum(OT_DO$group)
+Tabela_de_Atributos$N_OT_MH = sum(OT_MH$group)
+
+
+
+```
+
+
+
 
 ## A dúvida
 
@@ -36,3 +578,4 @@ plot(post)
 ```{r}
 posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
 ```
+
