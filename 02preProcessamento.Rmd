@@ -14,7 +14,7 @@ require(lubridate)
 ```
 
 ```{r folders}
-PATH = 'psb/'
+PATH = 'data/'
 COMPL = 'auxiliar/'
 ```
 
@@ -954,16 +954,6 @@ inv.paisagens %<>% mutate(year = year(date))
 inv.paisagens %<>% mutate(plot = ifelse(is.na(plot), 'None', plot))
 ```
 
-```{r grupoEcologico}
-grupoEcologico = read.csv(paste0(COMPL, 'grupoEcologico.csv'))
-inv.paisagens %<>% left_join(grupoEcologico, by = c('scientific.name' = 'Especie'))
-```
-
-```{r comercial}
-comercial = read.csv(paste0(COMPL, 'comercial.csv'))
-inv.paisagens %<>% left_join(comercial, by = c('scientific.name' = 'especie'))
-```
-
 ```{r areaRelativa}
 dimensao = read.csv(paste0(COMPL, 'dimensaoParcelas.csv'))
 calcularArea = function(dap, nome.area, dim.df){
@@ -1000,5 +990,5 @@ inv.paisagens %<>% mutate(eqTree = 1/areaPlot)
 ```
 
 ```{r export}
-write.csv(inv.paisagens, 'dados/10_invPaisagensMerged.csv')
+write.csv(inv.paisagens, 'data/invMerged.csv')
 ```
