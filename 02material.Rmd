@@ -5,7 +5,7 @@ output: html_document
 
 
 
-```{r, echo=FALSE}
+```{r, echo = FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
@@ -22,26 +22,23 @@ require(moments) #Curtose e assimetria
 
 
 # Áreas de estudo
-
 ```{r prepDados}
-invMerged = read_csv("./data/invMerged.csv")
+invMerged = read.csv("./data/invMerged.csv")
+  calcVtcc = function(dap){                                                             return(0.51168+0.000911*dap^2)  
+  }
 
-calcVtcc = function(dap){                                                      
-  return(0.51168+0.000911*dap^2)  
-}
-
-invMerged$vol = calcVtcc(invMerged$DBH) 
+invMerged$vol = calcVtcc(invMerged$DBH)
 ```
 
 
-Selecionando area para extração das métricas...
+Selecionando área para extração das métricas ... 
 
 ```{r selecArea}
-inv = invMerged %>% filter(area == 'BON_A01') %>% filter(year == '2014')
+
+inv = invMerged %>% filter(area == "BON_A01") %>% filter(year == "2014")
 ```
 
-
-Análise exploratória da base de dados
+Análise exploratória da base de dados ...
 
 ```{r analiseExplor}
 #Número de parcelas
@@ -50,39 +47,42 @@ N_par = length(unique(inv$plot))
 # Número de árvores amostradas
 N_arv = nrow(inv)
 
-# Volume por hectare
-vol_h = inv %>%
+# Volume por hecatre (puxar da área equivalente)
+vol_h = inv %>% 
   group_by(plot) %>%
-  summarise(vol = sum(vol * eqTree)) %>%
-  summarize(mean(vol))
+  summarise(vol = sum(vol * eqTree)) %>% 
+  summarise(mean(vol))
+  
 
-Media = mean(inv$DBH)
-Mediana = median(inv$DBH)
+ Media = mean(inv$DBH)
+ Mediana = median(inv$DBH)
 
-DAP_maximo = max(inv$DBH)
-Desvio_padrao = sd(inv$DBH)
-Coef_Var = ((Desvio_padrao/Media)*100)
+ DAP_maximo = max(inv$DBH)
+ Desvio_padrao = sd(inv$DBH)
+ Coef_Var = ((Desvio_padrao/Media)*100)
+ 
+ q1_DAP = quantile(inv$DBH, 0.25) 
+ q3_DAP = quantile(inv$DBH, 0.75)
+ iqr_DAP = IQR(inv$DBH)
+ ass_DAP = skewness(inv$DBH)
+ cur_DAP = kurtosis(inv$DBH)
 
-q1_DAP = quantile(inv$DBH, 0.25) 
-q3_DAP = quantile(inv$DBH, 0.75)
-iqr_DAP = IQR(inv$DBH)
-ass_DAP = skewness(inv$DBH)
-cur_DAP = kurtosis(inv$DBH)
-
-dadosReferencia = data.frame(inv = "BON_A01_2014_Inventory",
-                             nParc = N_par,
-                             nArv = N_arv,
-                             volHa = round(vol_h,2),
-                             dapAvg = round(Media,2),
-                             dapMd = round(Mediana,2),
-                             dapMax = round(DAP_maximo,2),
-                             dapDp = round(Desvio_padrao,2),
-                             dapCv = round(Coef_Var,2),
-                             dapQ1 = round(q1_DAP,2),
-                             dapQ3 = round(q3_DAP,2),
-                             dapIqr = round(iqr_DAP,2),
-                             dapAss = round(ass_DAP,2),
-                             dapCur = round(cur_DAP,2))
+ 
+ dadosReferencia = data.frame(inv = "BON_A01_2014_Inventory",
+                                 nParc = N_par,
+                                 nArv = N_arv,
+                                 volHa = vol_h,
+                               dapAvg = round(Media,2),
+                              dapMd = round(Mediana,2),
+                              dapMax = round(DAP_maximo,2),
+                              dapDp = round(Desvio_padrao,2),
+                              dapCv = round(Coef_Var,2),
+                              dapQ1 = round(q1_DAP,2),
+                              dapQ3 = round(q3_DAP,2),
+                              dapIqr = round(iqr_DAP,2),
+                              dapAss = round(ass_DAP,2),
+                              dapCur = round(cur_DAP,2))
+ 
 ```
 
 
@@ -90,171 +90,183 @@ Ajustar modelo de Meyer para obter parâmetros da distribuição diamétrica...
 
 ```{r meyer}
 
-distDiam = inv %>%
+distDian = inv %>% 
   group_by(plot, cc) %>%
   summarise(logNarv = log(sum(eqTree)))
-
-lmMeyer = lm(logNarv ~ cc, data=distDiam)
   
+lmMeyer = lm(logNarv ~ cc, distDian)
+
 dadosReferencia$meyerB0 = coef(lmMeyer)[1]
 dadosReferencia$meyerB1 = coef(lmMeyer)[2]
+
 ```
 
-Caluclar quociente de Liocourt para o inventário...
+Calcular Quociente de Liocourt para os dados....
 
-```{r liocourt}
-distDiam = inv %>%
+```{r lioucout}
+distDian = inv %>% 
   group_by(plot, cc) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(cc) %>%
-  summarise(nArv = sum(nArv)/length(unique(inv$plot)))
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(cc) %>% 
+  summarise(Narv = sum(Narv)/length(unique(inv$plot)))
 
-distDiam$q = NA
-for(i in distDiam$cc){
-  if((i+10) %in% distDiam$cc){
-    distDiam[distDiam$cc == i, 3] = distDiam[distDiam$cc == i, 2] / distDiam[distDiam$cc == i+10, 2]} 
-  else {
-    distDiam[distDiam$cc == i, 3] = NA
+distDian$q = NA
+for(i in distDian$cc) {
+  if((i+10) %in% distDian$cc){
+    distDian[distDian$cc == i, 3] = distDian[distDian$cc == i, 2] / distDian[distDian$cc == i+10, 2]}
+  else{
+    distDian[distDian$cc == i, 3] = NA
   }
 }
 
-dadosReferencia$licourt = mean(na.omit(distDiam$q))
+dadosReferencia$licourt = mean(na.omit(distDian$q))
+
+
 ```
+
 
 Aplicando a Lei de Benford ao primeiro dígito DAP...
 
 ```{r benford}
-benf1 = benford(inv$DBH,
+benf01 = benford(inv$DBH,
                number.of.digits = 1)
 
-benf2 = benford(inv$DBH,
+benf02 = benford(inv$DBH,
                number.of.digits = 2)
 
-dadosReferencia$benf1Mad = benf1$MAD
-dadosReferencia$benf2Mad = benf2$MAD
+dadosReferencia$benf1Mad = benf01$MAD
+dadosReferencia$benf2Mad = benf02$MAD
 
-distfamilia = inv %>%
+
+distFamilia = inv %>% 
   group_by(plot, family.name) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(family.name) %>%
-  summarise(nArv = sum(nArv)/length(unique(inv$plot)))
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(family.name) %>% 
+  summarise(Narv = sum(Narv)/length(unique(inv$plot)))
 
-benfFam = benford(distfamilia$nArv,
+benfFam = benford(distFamilia$Narv,
                number.of.digits = 1)
+
 dadosReferencia$benfFam = benfFam$MAD
 
-distGen = inv %>%
-  group_by(plot, genera.name) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(genera.name) %>%
-  summarise(nArv = sum(nArv)/length(unique(inv$plot)))
 
-benfGen = benford(distGen$nArv,
+distGenero = inv %>% 
+  group_by(plot, genera.name) %>%
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(genera.name) %>% 
+  summarise(Narv = sum(Narv)/length(unique(inv$plot)))
+
+benfGen = benford(distGenero$Narv,
                number.of.digits = 1)
+
 dadosReferencia$benfGen = benfGen$MAD
 
-distEsp = inv %>%
-  group_by(plot, scientific.name) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(scientific.name) %>%
-  summarise(nArv = sum(nArv)/length(unique(inv$plot)))
 
-benfEsp = benford(distEsp$nArv,
+distEsp = inv %>% 
+  group_by(plot, scientific.name) %>%
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(scientific.name) %>% 
+  summarise(Narv = sum(Narv)/length(unique(inv$plot)))
+
+benfEsp = benford(distEsp$Narv,
                number.of.digits = 1)
+
 dadosReferencia$benfEsp = benfEsp$MAD
-```
-
-Densidade de Kernel para espécie, genero e família... largura de banda, desvio padrão de kernel - suavização...
-
-```{r kernel}
-dkE = density(distfamilia$nArv)
-dkG = density(distGen$nArv)
-dkF = density(distEsp$nArv)
-
-dadosReferencia$dkE = dkE$bw
-dadosReferencia$dkG = dkG$bw
-dadosReferencia$dkF = dkF$bw
 
 ```
 
+Densidade de Kernel - Espécie e Família...
 
-Espécies mais abundantes como indicadoras...
+```{r Kernel}
+dkEsp = density(distEsp$Narv)
+dkFam = density(distFamilia$Narv)
+dkGen = density(distGenero$Narv)
 
-```{r}
-eoi = c("Aspidosperma excelsum",
-        "Bertholletia excelsa",
-        "Caryocar villosum",
-        "Conceveiba guianensis",
-        "Couratari guianensis",
-        "Dinizia excelsa",
-        "Dipteryx odorata",
-        "Eperua rubiginosa",
-        "Eschweilera coriacea",
-        "Goupia glabra",
-        "Manilkara huberi",
-        "Micropholis venulosa",
-        "Minquartia guianensis",
-        "Nectandra rubra",
-        "Qualea albiflora",
-        "Sloanea grandiflora",
-        "Tabebuia serratifolia")
+dadosReferencia$dkEsp = dkEsp$bw
+dadosReferencia$dkFam = dkFam$bw
+dadosReferencia$dkGen = dkGen$bw
+```
 
-cod = c("Ae",
-        "Be",
-        "Cv",
-        "Cog",
-        "Cug",
-        "De",
-        "Do",
-        "Er",
-        "Ec",
-        "Gg",
-        "Mh",
-        "Mv",
-        "Mg",
-        "Nr",
-        "Qa",
-        "Sg",
-        "Ts")
 
-freq = inv %>%
+Espécies mais abundantes...
+
+```{r espDominantes}
+eoi = c( "Aspidosperma excelsum",
+         "Bertholletia excelsa",
+         "Caryocar villosum",
+         "Conceveiba guianensis",
+         "Couratari guianensis",
+         "Dinizia excelsa",
+         "Dipteryx odorata",
+         "Eperua rubiginosa",
+         "Eschweilera coriacea",
+         "Goupia glabra",
+         "Manilkara huberi",
+         "Micropholis venulosa",
+         "Minquartia guianensis",
+         "Nectandra rubra",
+         "Qualea albiflora",
+         "Sloanea grandiflora",
+         "Tabebuia serratifolia")
+
+cod = c( "Ae",
+         "Be",
+         "Cv",
+         "Cog",
+         "Cug",
+         "De",
+         "Do",
+         "Er",
+         "Ec",
+         "Gg",
+         "Mh",
+         "Mv",
+         "Mg",
+         "Nr",
+         "Qa",
+         "Sg",
+         "Ts")
+
+
+freq = inv %>% 
   group_by(plot, scientific.name) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(scientific.name) %>%
-  summarise(freq = n()/length(unique(inv$plot))) %>%
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(scientific.name) %>% 
+  summarise(freq = n()/length(unique(inv$plot)))%>%
   filter(scientific.name %in% eoi)
 
-densidade = inv %>%
+densidade = inv %>% 
   group_by(plot, scientific.name) %>%
-  summarise(nArv = sum(eqTree)) %>%
-  group_by(scientific.name) %>%
-  summarise(dens = sum(nArv)/length(unique(inv$plot))) %>%
+  summarise(Narv = (sum(eqTree))) %>%
+  group_by(scientific.name) %>% 
+  summarise(dens = sum(Narv)/length(unique(inv$plot)))%>%
   filter(scientific.name %in% eoi)
 
-dominancia = inv %>%
-  mutate(q = DBH*pi/40000) %>%
+dominancia = inv %>% 
+  mutate(q = DBH*pi/40000) %>% 
   group_by(plot, scientific.name) %>%
-  summarise(AB = sum(q * eqTree)) %>%
-  group_by(scientific.name) %>%
-  summarise(dom = sum(AB)/length(unique(inv$plot))) %>%
+  summarise(AB = (sum(q*eqTree))) %>%
+  group_by(scientific.name) %>% 
+  summarise(dom = sum(AB)/length(unique(inv$plot)))%>%
   filter(scientific.name %in% eoi)
 
-estrutura = data.frame(esp = eoi, cod = cod, freq = 0, dom = 0, den = 0)
+
+estrutura = data.frame(esp = eoi, cod =cod, freq =0, dom = 0, den = 0)
 
 for(i in freq$scientific.name){
-  estrutura[estrutura$esp == i,3] = freq[freq$scientific.name == i,2]
-  estrutura[estrutura$esp == i,5] = densidade[densidade$scientific.name == i,2]
-  estrutura[estrutura$esp == i,4] = dominancia[dominancia$scientific.name == i,2]
+estrutura[estrutura$esp == i,3] = freq[freq$scientific.name == i, 2] 
+estrutura[estrutura$esp == i,5] = densidade[densidade$scientific.name == i, 2]
+estrutura[estrutura$esp == i,4] = dominancia[dominancia$scientific.name == i, 2]
 }
 
 estrutura = pivot_longer(
   estrutura,
-  cols = c("freq", "dom", "den"),
+  cols =  c("freq", "dom", "den"),
   names_to = "estrutFloresta"
-) %>% 
-  mutate(estrut = paste0(cod,estrutFloresta))
+  )%>%
+mutate(estrut = paste0(cod, estrutFloresta))
 
-estrutura = data.frame(estrut = estrutura$estrut, indice = estrutura$value)
+estrutura =  data.frame(estrut = estrutura$estrut, indice = estrutura$value)
 
 estrutura = pivot_wider(
   estrutura,
@@ -262,122 +274,111 @@ estrutura = pivot_wider(
   values_from = "indice")
 
 
-dadosReferencia = cbind(dadosReferencia, estrutura)
-```
-
-# Índice de Payandeh: 
-```{r}
-# Criando matriz de espécies nas colunas e parcelas nas linhas
-Matriz_BON_A01_2014_Inventory = table(BON_A01_2014_Inventory$plot_ID, BON_A01_2014_Inventory$scientific_name)
-
-# Número de indivíduos por espécie
-N_especie = table(BON_A01_2014_Inventory$scientific_name)
-
-#Calculo
-MI = apply(Matriz_BON_A01_2014_Inventory,2,mean)
-Ssquare = apply(Matriz_BON_A01_2014_Inventory,2,var)
-Indice_Payandeh = Ssquare/MI
-Indice_Payandeh
-
-# Tabela com os resultados
-tabela_IP = data.frame(Espécie=names(N_especie),
-                          N_especie=as.vector(N_especie),
-                          Indice_Payandeh = round(as.vector(Indice_Payandeh),1))
-
-tabela_IP = tabela_IP[order(tabela_IP$Indice_Payandeh,decreasing = T),]
-
-Tabela_de_Atributos$BE_PI = tabela_IP[tabela_IP$Espécie == "Bertholletia excelsa", 3] 
-
-Tabela_de_Atributos$DO_PI = tabela_IP[tabela_IP$Espécie == "Dipteryx odorata", 3]
-
-Tabela_de_Atributos$MH_PI = tabela_IP[tabela_IP$Espécie == "Manilkara huberi", 3]
-
-
-
-# Bertholletia excelsa;(9) ~
-# Dipteryx odorata;(29) ~
-# Manilkara huberi;(49)~
+dadosReferencia =  cbind(dadosReferencia, estrutura)
 
 ```
 
+Indice de distribuição espacial... Índice de Payandeh...
 
-# Modelo da densidade e diâmetro de Reineke (1933): 
-```{r}
-MDDR = data.frame(Inventário = "BON_A01_2014_Inventory",
-                  g = 0,
-                  N = 0,
-                  d = 0)
+```{r payandeh}
 
-BON_A01_2014_Inventory$g = ((BON_A01_2014_Inventory$DBH^2)* pi)/40000 
+indicePayandeh = (apply(table(inv$plot,inv$scientific.name),2,var))/
+                 (apply(table(inv$plot,inv$scientific.name),2,mean))
 
-Modelo_R = sum(BON_A01_2014_Inventory$g)/nrow(BON_A01_2014_Inventory)
 
-MDDR$g = Modelo_R
-MDDR$N = nrow(BON_A01_2014_Inventory)
-MDDR$d = sqrt((MDDR$g*(40000))/pi)
+indicePayandeh = data.frame(scientific.name= names(table(inv$scientific.name)),
+                            indicePay= round(as.vector(IndicePayandeh),1)) %>%
+                              filter(scientific.name %in% eoi)
 
-#reg = lm(log(N) ~ log(d), MDDR)
-#summary(reg)
+estruturaEspacial = data.frame(esp = eoi, cod = cod, payandeh = 0)
+
+
+for(i in indicePayandeh$scientific.name){
+  estruturaEspacial[estruturaEspacial$esp == i,3] = indicePayandeh[indicePayandeh$scientific.name == i, 2] 
+}
+
+estruturaEspacial = pivot_longer(
+  estruturaEspacial,
+  cols =  c("payandeh"),
+  names_to = "estruturaEspacial") %>%
+mutate(estrut = paste0(cod, estruturaEspacial))
+
+estruturaEspacial =  data.frame(estrut = estruturaEspacial$estrut, 
+                                indice = estruturaEspacial$value)
+
+estruturaEspacial = pivot_wider(
+  estruturaEspacial,
+  names_from = "estrut",
+  values_from = "indice")
+
+dadosReferencia =  cbind(dadosReferencia, estruturaEspacial)
+```
+
+
+Regra de Reineke (1933), relacionando número de indivíduos e média dos diâmétros...
+
+```{r reineke}
+reineke = inv %>% 
+  group_by(plot) %>%
+  summarise(logN = log(sum(eqTree)), logd = log(mean(DBH)))
+
+lmRein = lm(logN ~ logd, reineke)
+
+dadosReferencia$reinekeB0 = coef(lmRein)[1]
+dadosReferencia$reinekeB1 = coef(lmRein)[2]
 
 ```
 
 
-# Diversidade Alfa: 
-```{r}
-# Matriz de frequência das espécies
-M_freq_BON_A01_2014_Inventory =  xtabs(~plot_ID+scientific_name, BON_A01_2014_Inventory)
+Diversidade Alfa...
 
-#Número de indivíduos por parcela
-N_ind_parc = rowSums(M_freq_BON_A01_2014_Inventory)
+```{r diversidade}
+shannon = diversity(apply(table(inv$plot,inv$scientific.name),2,sum), index = 'shannon')
+simpson = diversity(apply(table(inv$plot,inv$scientific.name),2,sum), index = 'simpson')
+pielou = shannon/log(specnumber(apply(table(inv$plot,inv$scientific.name),2,sum)))
 
-# Número total de indivíduos amostrados
-N_ind_tot = sum(N_ind_parc)
 
-# Número de espécies
-N_sp_parc = specnumber(M_freq_BON_A01_2014_Inventory)
-
-# Número de espécies total
-N_sp_tot = specnumber(colSums(M_freq_BON_A01_2014_Inventory))
-
-# Índice de Shannon para toda a comunidade
-simpson = diversity(colSums(M_freq_BON_A01_2014_Inventory), index = 'shannon')
-
-# Índice de simpson para toda a comunidade
-shannon = diversity(colSums(M_freq_BON_A01_2014_Inventory), index = 'simpson')
-
-# Equabilidade de Pielou para toda comunidade
-pielou = shannon/log(N_sp_tot)
-
-# Adicionando a Tabela de atributos
-
-Tabela_de_Atributos$Simpson = round(simpson,2)
-Tabela_de_Atributos$Shannon = round(shannon,2)
-Tabela_de_Atributos$Pielou = round(pielou,2)
+dadosReferencia$Simpson = round(simpson, 2)
+dadosReferencia$Shannon = round(shannon, 2)
+dadosReferencia$Pielou = round(pielou, 2)
 ```
 
 
 # Dectecção de outliers - Espécies de maior valor econômico   
 ```{r}
-outliers_BE = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Bertholletia excelsa", ] 
-OT_BE= boxplot(outliers_BE$DBH)
+#o valor de outlier de uma especie esta indo para todas
 
-outliers_DO = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Dipteryx odorata", ] 
-OT_DO= boxplot(outliers_DO$DBH)
-
-outliers_MH = BON_A01_2014_Inventory[BON_A01_2014_Inventory$scientific_name ==     "Manilkara huberi", ]
-OT_MH= boxplot(outliers_MH$DBH)
-
-# Bertholletia excelsa;(9) ~
-# Dipteryx odorata;(29) ~
-# Manilkara huberi;(49)~
+outlier = inv %>%
+  group_by(scientific.name) %>%
+  summarise(out = (outlier(inv$DBH))) %>%
+  summarise(scientific.name = scientific.name, outEsp = out)%>%
+  filter(scientific.name %in% eoi)
 
 
-# Adicionando a de atributos
-Tabela_de_Atributos$N_OT_BE = sum(OT_BE$group)
-Tabela_de_Atributos$N_OT_DO = sum(OT_DO$group)
-Tabela_de_Atributos$N_OT_MH = sum(OT_MH$group)
+estrOutl = data.frame(esp = eoi, cod =cod, outl =0)
 
 
+for(i in outlier$scientific.name){
+estrOutl[estrOutl$esp == i,3] = outlier[outlier$scientific.name == i, 2] 
+}
+
+
+estrOutl = pivot_longer(
+  estrOutl,
+  cols =  c("outl"),
+  names_to = "estrutFloresta"
+  )%>%
+mutate(estrut = paste0(cod, estrutFloresta))
+
+estrOutl =  data.frame(estrut = estrOutl$estrut, indice = estrOutl$value)
+
+estrOutl = pivot_wider(
+  estrOutl,
+  names_from = "estrut",
+  values_from = "indice")
+
+
+dadosReferencia =  cbind(dadosReferencia, estrOutl)
 
 ```
 
@@ -412,4 +413,3 @@ plot(post)
 ```{r}
 posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
 ```
-
