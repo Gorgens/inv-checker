@@ -5,7 +5,7 @@ output: html_document
 
 
 
-```{r, echo = FALSE}
+```{r pacotes2, echo = FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
@@ -21,8 +21,9 @@ require(moments) #Curtose e assimetria
 ```
 
 
-# Áreas de estudo
-```{r prepDados}
+Áreas de estudo...
+
+```{r prepDados, echo=FALSE}
 invMerged = read.csv("./data/invMerged.csv")
   calcVtcc = function(dap){                                                             return(0.51168+0.000911*dap^2)  
   }
@@ -31,27 +32,17 @@ invMerged$vol = calcVtcc(invMerged$DBH)
 ```
 
 
-Selecionando área para extração das métricas ... 
-
-```{r selecArea}
-
-inv = invMerged %>% filter(area == "BON_A01") %>% filter(year == "2014")
-```
-
 Análise exploratória da base de dados ...
 
-```{r analiseExplor}
-#Número de parcelas
+```{r analiseExplor, echo=FALSE, eval=FALSE}
 N_par = length(unique(inv$plot))
 
-# Número de árvores amostradas
 N_arv = nrow(inv)
 
-# Volume por hecatre (puxar da área equivalente)
 vol_h = inv %>% 
   group_by(plot) %>%
   summarise(vol = sum(vol * eqTree)) %>% 
-  summarise(mean(vol))
+  summarise(meanVol = mean(vol))
   
 
  Media = mean(inv$DBH)
@@ -83,12 +74,14 @@ vol_h = inv %>%
                               dapAss = round(ass_DAP,2),
                               dapCur = round(cur_DAP,2))
  
+rm(N_par, N_arv, vol_h, Media, Mediana, DAP_maximo, Desvio_padrao, Coef_Var, 
+   q1_DAP, q3_DAP, iqr_DAP, ass_DAP, cur_DAP)
 ```
 
 
 Ajustar modelo de Meyer para obter parâmetros da distribuição diamétrica...
 
-```{r meyer}
+```{r meyer, echo=FALSE, eval=FALSE}
 
 distDian = inv %>% 
   group_by(plot, cc) %>%
@@ -99,11 +92,12 @@ lmMeyer = lm(logNarv ~ cc, distDian)
 dadosReferencia$meyerB0 = coef(lmMeyer)[1]
 dadosReferencia$meyerB1 = coef(lmMeyer)[2]
 
+rm(distDian, lmMeyer)
 ```
 
 Calcular Quociente de Liocourt para os dados....
 
-```{r lioucout}
+```{r lioucout, echo=FALSE, eval=FALSE}
 distDian = inv %>% 
   group_by(plot, cc) %>%
   summarise(Narv = (sum(eqTree))) %>%
@@ -121,13 +115,12 @@ for(i in distDian$cc) {
 
 dadosReferencia$licourt = mean(na.omit(distDian$q))
 
-
+rm(distDian, i)
 ```
-
 
 Aplicando a Lei de Benford ao primeiro dígito DAP...
 
-```{r benford}
+```{r benford, echo=FALSE, eval=FALSE}
 benf01 = benford(inv$DBH,
                number.of.digits = 1)
 
@@ -173,11 +166,12 @@ benfEsp = benford(distEsp$Narv,
 
 dadosReferencia$benfEsp = benfEsp$MAD
 
+rm(benf01, benf02, benfFam, benfGen, benfEsp)
 ```
 
 Densidade de Kernel - Espécie e Família...
 
-```{r Kernel}
+```{r Kernel, echo=FALSE, eval=FALSE}
 dkEsp = density(distEsp$Narv)
 dkFam = density(distFamilia$Narv)
 dkGen = density(distGenero$Narv)
@@ -185,12 +179,14 @@ dkGen = density(distGenero$Narv)
 dadosReferencia$dkEsp = dkEsp$bw
 dadosReferencia$dkFam = dkFam$bw
 dadosReferencia$dkGen = dkGen$bw
+
+rm(dkEsp, dkFam, dkGen, distFamilia, distGenero, distEsp)
 ```
 
 
 Espécies mais abundantes...
 
-```{r espDominantes}
+```{r espDominantes, echo=FALSE, eval=FALSE}
 eoi = c( "Aspidosperma excelsum",
          "Bertholletia excelsa",
          "Caryocar villosum",
@@ -276,18 +272,20 @@ estrutura = pivot_wider(
 
 dadosReferencia =  cbind(dadosReferencia, estrutura)
 
+rm(freq, densidade, dominancia, estrutura, i)
+
 ```
 
 Indice de distribuição espacial... Índice de Payandeh...
 
-```{r payandeh}
+```{r payandeh, echo=FALSE, eval=FALSE}
 
 indicePayandeh = (apply(table(inv$plot,inv$scientific.name),2,var))/
                  (apply(table(inv$plot,inv$scientific.name),2,mean))
 
 
 indicePayandeh = data.frame(scientific.name= names(table(inv$scientific.name)),
-                            indicePay= round(as.vector(IndicePayandeh),1)) %>%
+                            indicePay= round(as.vector(indicePayandeh),1)) %>%
                               filter(scientific.name %in% eoi)
 
 estruturaEspacial = data.frame(esp = eoi, cod = cod, payandeh = 0)
@@ -312,12 +310,14 @@ estruturaEspacial = pivot_wider(
   values_from = "indice")
 
 dadosReferencia =  cbind(dadosReferencia, estruturaEspacial)
+
+rm(indicePayandeh, estruturaEspacial, cod, eoi, i)
 ```
 
 
 Regra de Reineke (1933), relacionando número de indivíduos e média dos diâmétros...
 
-```{r reineke}
+```{r reineke, echo=FALSE, eval=FALSE}
 reineke = inv %>% 
   group_by(plot) %>%
   summarise(logN = log(sum(eqTree)), logd = log(mean(DBH)))
@@ -327,12 +327,14 @@ lmRein = lm(logN ~ logd, reineke)
 dadosReferencia$reinekeB0 = coef(lmRein)[1]
 dadosReferencia$reinekeB1 = coef(lmRein)[2]
 
+rm(reineke, lmRein)
+
 ```
 
 
 Diversidade Alfa...
 
-```{r diversidade}
+```{r diversidade, echo=FALSE, eval=FALSE}
 shannon = diversity(apply(table(inv$plot,inv$scientific.name),2,sum), index = 'shannon')
 simpson = diversity(apply(table(inv$plot,inv$scientific.name),2,sum), index = 'simpson')
 pielou = shannon/log(specnumber(apply(table(inv$plot,inv$scientific.name),2,sum)))
@@ -341,45 +343,24 @@ pielou = shannon/log(specnumber(apply(table(inv$plot,inv$scientific.name),2,sum)
 dadosReferencia$Simpson = round(simpson, 2)
 dadosReferencia$Shannon = round(shannon, 2)
 dadosReferencia$Pielou = round(pielou, 2)
+
+rm(shannon, simpson, pielou)
 ```
 
 
-# Dectecção de outliers - Espécies de maior valor econômico   
-```{r}
-#o valor de outlier de uma especie esta indo para todas
+Dectecção de outliers de espécies de valor econômico... >Q75+1.5 IQR ou <Q25 - 1.5 IQR
 
-outlier = inv %>%
-  group_by(scientific.name) %>%
-  summarise(out = (outlier(inv$DBH))) %>%
-  summarise(scientific.name = scientific.name, outEsp = out)%>%
-  filter(scientific.name %in% eoi)
+```{r outlier, echo=FALSE, eval=FALSE}
+comerciais = read.csv('./auxiliar/comercial.csv') %>% filter(comercial == 1)
 
+dout = boxplot(inv$DBH)$out
+out = inv %>%
+  filter(DBH %in% dout) %>%
+  filter(scientific.name %in% comerciais$especie)
 
-estrOutl = data.frame(esp = eoi, cod =cod, outl =0)
+dadosReferencia$outliersCommerciais = dim(out)[1]
 
-
-for(i in outlier$scientific.name){
-estrOutl[estrOutl$esp == i,3] = outlier[outlier$scientific.name == i, 2] 
-}
-
-
-estrOutl = pivot_longer(
-  estrOutl,
-  cols =  c("outl"),
-  names_to = "estrutFloresta"
-  )%>%
-mutate(estrut = paste0(cod, estrutFloresta))
-
-estrOutl =  data.frame(estrut = estrOutl$estrut, indice = estrOutl$value)
-
-estrOutl = pivot_wider(
-  estrOutl,
-  names_from = "estrut",
-  values_from = "indice")
-
-
-dadosReferencia =  cbind(dadosReferencia, estrOutl)
-
+rm(dout, out)
 ```
 
 
