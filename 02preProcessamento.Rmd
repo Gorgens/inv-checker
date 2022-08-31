@@ -3,7 +3,7 @@ title: "02preProcessamento.Rmd"
 output: html_document
 ---
 
-```{r packages}
+```{r packages, warning=FALSE, echo=FALSE}
 require(dplyr)
 require(tidyr)
 require(splus2R)
@@ -13,12 +13,12 @@ require(stringr)
 require(lubridate)
 ```
 
-```{r folders}
+```{r folders,, warning=FALSE, echo=FALSE}
 PATH = 'data/'
 COMPL = 'auxiliar/'
 ```
 
-```{r processInv}
+```{r processInv, warning=FALSE, echo=FALSE}
 and2013 = read.csv(paste0(PATH, 'AND_A01_2013_Inventory.csv'), encoding='latin-1')
 and2013$date %<>% as.character() %>% as.Date(format =  "%Y%m%d")
 and2013 %<>% rename(subplot = plot, plot = trans.ID)
@@ -871,6 +871,7 @@ inv.paisagens = merge(inv.paisagens, bon2014, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, cau2012, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, cau2014, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, cau2014b, all.x = TRUE, all.y = TRUE)
+inv.paisagens = merge(inv.paisagens, cau2018, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, duc2009, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, duc2011, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, duc2016, all.x = TRUE, all.y = TRUE)
@@ -893,9 +894,9 @@ inv.paisagens = merge(inv.paisagens, tac2014, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tac2015, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tal2014, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tan2012, all.x = TRUE, all.y = TRUE)
-inv.paisagens = merge(inv.paisagens, tap2009, all.x = TRUE, all.y = TRUE)
-inv.paisagens = merge(inv.paisagens, tap2010, all.x = TRUE, all.y = TRUE)
-inv.paisagens = merge(inv.paisagens, tap2011, all.x = TRUE, all.y = TRUE)
+# inv.paisagens = merge(inv.paisagens, tap2009, all.x = TRUE, all.y = TRUE)
+# inv.paisagens = merge(inv.paisagens, tap2010, all.x = TRUE, all.y = TRUE)
+# inv.paisagens = merge(inv.paisagens, tap2011, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tap2015, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tap2016, all.x = TRUE, all.y = TRUE)
 inv.paisagens = merge(inv.paisagens, tap2018, all.x = TRUE, all.y = TRUE)
@@ -949,7 +950,9 @@ inv.paisagens %<>% separate(scientific, c('genera.name', 'epiteto.name'), " ")
 
 inv.paisagens %<>% mutate(cc = floor(DBH/10.0)*10+(10/2))
 
+inv.paisagens %<>% filter(!is.na(date))
 inv.paisagens %<>% mutate(year = year(date))
+
 
 inv.paisagens %<>% mutate(plot = ifelse(is.na(plot), 'None', plot))
 ```
@@ -992,3 +995,15 @@ inv.paisagens %<>% mutate(eqTree = 1/areaPlot)
 ```{r export}
 write.csv(inv.paisagens, 'data/invMerged.csv')
 ```
+
+
+```{r sandbox}
+
+# temp = inv.paisagens %>% 
+#   group_by(area, year, scientific.name) %>%
+#   summarise(n()) %>%
+#   group_by(area, year) %>%
+#   summarise(n())
+
+```
+
