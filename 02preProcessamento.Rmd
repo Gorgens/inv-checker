@@ -997,7 +997,7 @@ inv.paisagens$areaPlot = mapply(calcularArea, inv.paisagens$DBH, inv.paisagens$a
 inv.paisagens %<>% mutate(eqTree = 1/areaPlot)
 ```
 
-```{r export}
+```{r export, warning=FALSE, echo=FALSE}
 write.csv(inv.paisagens, 'data/invMerged v2.csv')
 ```
 

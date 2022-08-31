@@ -3,7 +3,7 @@ title: "Resultados"
 output: html_document
 ---
 
-```{r pacotes3, echo = FALSE}
+```{r pacotes3, warning=FALSE, echo=FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
@@ -22,10 +22,12 @@ Selecionando área para extração das métricas ...
 
 ```{r processamento, echo=FALSE}
 
-invMerged = read.csv("./data/invMerged.csv")
+invMerged = read.csv("./data/invMerged v2.csv") %>%
+  filter(DBH > 0)
 
-calcVtcc = function(dap){                                                             return(0.51168+0.000911*dap^2)  
-  }
+calcVtcc = function(dap){                                                             
+  return(0.51168+0.000911*dap^2)  
+}
 
 invMerged$vol = calcVtcc(invMerged$DBH)
 

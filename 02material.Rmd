@@ -5,7 +5,7 @@ output: html_document
 
 
 
-```{r pacotes2, echo = FALSE}
+```{r pacotes2, warning=FALSE, echo=FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
@@ -23,10 +23,13 @@ require(moments) #Curtose e assimetria
 
 Áreas de estudo...
 
-```{r prepDados, echo=FALSE}
-invMerged = read.csv("./data/invMerged.csv")
-  calcVtcc = function(dap){                                                             return(0.51168+0.000911*dap^2)  
-  }
+```{r prepDados, warning=FALSE, echo=FALSE, eval=FALSE}
+invMerged = read.csv("./data/invMerged v2.csv") %>%
+  filter(DBH > 0)
+
+calcVtcc = function(dap){                                                           
+  return(0.51168+0.000911*dap^2)  
+}
 
 invMerged$vol = calcVtcc(invMerged$DBH)
 ```
@@ -363,21 +366,9 @@ dadosReferencia$outliersCommerciais = dim(out)[1]
 rm(dout, out)
 ```
 
+## O teste Bayesiano
 
-
-
-## A dúvida
-
-```{r}
-duvida = read.csv('./data/tapajos.csv')
-duvida = duvida %>% filter(!is.na(ida))
-```
-
-O órgão ambiental do Pará, acabeu de receber um inventário como parte de um processo de intervenção ambiental. Com base no inventário, a empresa considerou para o manejo, uma taxa de crescimento diamétrica de `mean(na.omit(duvida$ida))` cm/ano.
-
-O analista deseja saber se o valores de incremento apresentado pela empresa está dentro do que se conhece sobre a área. Para isto, ele vai usar a estatisticas Bayesiana para analisar os dados.
-
-## Análise a posteriori
+Ao receber um inventário como parte de um processo de intervenção ambiental, o analista pode comparar os valores dos indicadores com as referências. Para isto, a estatisticas Bayesiana pode ser aplicado em que a referência indica a distribuição *a priori*. E o novo inventario sera usado para calcular a distribuição *a posteriori*.
 
 ```{r}
 post = stan_glm(ida ~ 1, 
