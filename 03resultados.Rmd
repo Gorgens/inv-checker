@@ -3,24 +3,24 @@ title: "Resultados"
 output: html_document
 ---
 
-```{r pacotes3, warning=FALSE, echo=FALSE}
+```{r pacotes3, warning=FALSE, message = FALSE, echo=FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
-require(forestmangr) # Distribuição diamétrica
 require(readr) # abrir arquivos excel
 require(benford.analysis) # Análise de benford
-require(ggplot2) #Criação de gráficos
-require(scales) #Edição de gráficos
 require(vegan) # Índices de diversidade
-require(outliers) #Detecção de outliers
 require(moments) #Curtose e assimetria
-
+require(gamlss) #Distribuicao
+require(ggplot2) #graficos
+require(grid)
+require(gridExtra)
+require(bayesplot) #GraficoBayes
 ```
 
 Selecionando área para extração das métricas ... 
 
-```{r processamento, echo=FALSE}
+```{r processamento, warning=FALSE, message=FALSE, echo=FALSE}
 
 invMerged = read.csv("./data/invMerged v2.csv") %>%
   filter(DBH > 0)
@@ -30,6 +30,8 @@ calcVtcc = function(dap){
 }
 
 invMerged$vol = calcVtcc(invMerged$DBH)
+
+rm(calcVtcc)
 
 locais = invMerged %>% 
   group_by(area, year) %>%
@@ -184,7 +186,7 @@ for(l in seq(1, dim(locais)[1], 1)){
                                   dapCur = round(cur_DAP,2))
      
     rm(N_par, N_arv, vol_h, Media, Mediana, DAP_maximo, Desvio_padrao, Coef_Var, 
-       q1_DAP, q3_DAP, iqr_DAP, ass_DAP, cur_DAP)
+       q1_DAP, q3_DAP, iqr_DAP, ass_DAP, cur_DAP, l)
     
     distDian = inv %>% 
       group_by(plot, cc) %>%
@@ -416,7 +418,7 @@ for(l in seq(1, dim(locais)[1], 1)){
     
     rm(shannon, simpson, pielou)
     
-    comerciais = read.csv('./auxiliar/comercial.csv') %>% filter(comercial == 1)
+    comerciais = read.csv("./auxiliar/comercial.csv") %>% filter(comercial == 1)
     
     dout = boxplot(inv$DBH)$out
     out = inv %>%
@@ -425,9 +427,198 @@ for(l in seq(1, dim(locais)[1], 1)){
     
     temp$outliersCommerciais = dim(out)[1]
     
-    rm(dout, out)
+    rm(dout, out,comerciais, inv)
     
     dadosReferencia = rbind(dadosReferencia, temp)
+    
+    rm(temp)
+    
 }
+
+rm(locais)
 ```
+
+
+```{r padronizacao, echo=FALSE, eval=FALSE}
+
+dadosReferencia = dadosReferencia %>% 
+  replace(is.na(.), 0)
+
+
+```
+
+
+```{r hist, echo=FALSE, eval=FALSE}
+
+for (i in 2:ncol(dadosReferencia)) {
+print(hist(dadosReferencia[,i]))
+  
+}
+
+rm(i)
+
+```
+
+
+```{r infApriori, echo=FALSE, eval=FALSE}
+ind = data.frame(Indicadores = c("nParc","nArv","meanVol","dapAvg","dapMd", 
+  "dapMax","dapDp","dapCv","dapQ1","dapQ3","dapIqr","dapAss","dapCur","meyerB0", 
+  "meyerB1","licourt","benf1Mad","benf2Mad","benfFam","benfGen","benfEsp","dkEsp", 
+  "dkFam","dkGen","Aefreq","Aedom","Aeden","Befreq","Bedom","Beden","Cvfreq","Cvdom", 
+  "Cvden","Cogfreq","Cogdom","Cogden","Cugfreq","Cugdom","Cugden","Defreq","Dedom", 
+  "Deden","Dofreq","Dodom","Doden","Erfreq","Erdom","Erden","Ecfreq","Ecdom","Ecden", 
+  "Ggfreq","Ggdom","Ggden","Mhfreq","Mhdom","Mhden","Mvfreq","Mvdom","Mvden","Mgfreq", 
+  "Mgdom","Mgden","Nrfreq","Nrdom","Nrden","Qafreq","Qadom","Qaden","Sgfreq","Sgdom", 
+  "Sgden","Tsfreq","Tsdom","Tsden","Aepayandeh","Bepayandeh","Cvpayandeh","Cogpayandeh", 
+  "Cugpayandeh","Depayandeh","Dopayandeh","Erpayandeh","Ecpayandeh","Ggpayandeh",
+  "Mhpayande","Mvpayandeh","Mgpayandeh","Nrpayandeh","Qapayandeh","Sgpayandeh",
+  "Tspayandeh","reinekeB0","reinekeB1","Simpson","Shannon","Pielou","outliersCommerciais"))
+
+
+family = data.frame(family = character())
+media = data.frame(Media = double())
+desvPad = data.frame(desvPad = double())
+
+  for(i in 2:ncol(dadosReferencia)){
+  
+  dist = fitDist(dadosReferencia [,i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
+    family[nrow(family) + 1,] = list(dist$family)
+
+    
+  medias = mean(dadosReferencia[,i])
+    media[nrow(media) + 1,] = medias
+
+    
+  desvPads = sd(dadosReferencia[,i])
+    desvPad[nrow(desvPad) + 1,] = desvPads
+
+}
+
+priori = cbind(ind, family, media, desvPad) 
+
+#infApriori = subset(priori, !(row.names(priori) %in% c(1,2, 34,35,36, 46,47,48, 64,
+                                                       #65, 66, 67,68, 69, 70, 71,72,
+                                                       #79,83, 89,90,91)))
+                                
+rm(desvPad, family,ind, media, desvPads,i, medias, dist)
+
+
+```
+
+
+```{r coeficientes, echo=FALSE, eval=FALSE}
+muCoef = data.frame(muCoef = character())
+sigmaCoef = data.frame(sigmaCoef = character())
+nuCoef = data.frame(nuCoef = character())
+
+  for(i in 2:ncol(dadosReferencia)){
+  
+  dist = fitDist(dadosReferencia [,i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
+  
+ 
+    if (length(dist$mu.coefficients) > 0) {
+  muCoef[nrow(muCoef) + 1,] = list(dist$mu.coefficients)
+}
+
+    if (length(dist$sigma.coefficients) > 0) {
+  sigmaCoef[nrow(sigmaCoef) + 1,] = list(dist$sigma.coefficients)
+}
+
+    if (length(dist$nu.coefficients) > 0) {
+  nuCoef[nrow(nuCoef) + 1,] = list(dist$nu.coefficients)
+}
+
+ 
+  }
+
+#coefs1 = cbind(ind, muCoef, sigmaCoef, nuCoef)
+
+rm(dist, i)
+
+```
+
+
+```{r coeficientes, echo=FALSE, eval=FALSE}
+
+ for(i in 2:ncol(dadosReferencia)){
+  
+  dist = fitDist(dadosReferencia [,i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
+  
+ 
+  ind$muCoef[i] = list(dist$mu.coefficients)
+
+  ind$sigmaCoef[i] = list(dist$sigma.coefficients)
+
+  ind$nuCoef[i] = list(dist$nu.coefficients)
+
+
+ 
+ }
+
+#rm(df, dist, ind,i , num_linhas)
+
+```
+
+
+```{r grafico, echo=FALSE, eval=FALSE}
+
+
+
+
+
+rm()
+```
+
+
+
+
+
+
+
+
+
+
+
+> mcmc_areas(post)
+> summary(post)
+
+Model Info:
+ function:     stan_glm
+ family:       gaussian [identity]
+ formula:      DBH.2015 ~ 1
+ algorithm:    sampling
+ sample:       4000 (posterior sample size)
+ priors:       see help('prior_summary')
+ observations: 3763
+ predictors:   1
+
+Estimates:
+              mean   sd   10%   50%   90%
+(Intercept) 23.0    0.3 22.7  23.0  23.3 
+sigma       15.8    0.2 15.6  15.8  16.0 
+
+Fit Diagnostics:
+           mean   sd   10%   50%   90%
+mean_PPD 23.0    0.4 22.5  23.0  23.5 
+
+The mean_ppd is the sample average posterior predictive distribution of the outcome variable (for details see help('summary.stanreg')).
+
+MCMC diagnostics
+              mcse Rhat n_eff
+(Intercept)   0.0  1.0  2443 
+sigma         0.0  1.0  2770 
+mean_PPD      0.0  1.0  3022 
+log-posterior 0.0  1.0  1605 
+
+For each parameter, mcse is Monte Carlo standard error, n_eff is a crude measure of effective sample size, and Rhat is the potential scale reduction factor on split chains (at convergence Rhat=1).
+> posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
+
+Drawing from prior...
+> posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
+
+Drawing from prior...
+> mcmc_areas(post)
+> View(dadosReferencia)
+> hist(dadosReferencia$dapQ3)
+
 

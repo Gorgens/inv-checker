@@ -3,20 +3,19 @@ title: "Material e métodos"
 output: html_document
 ---
 
-
-
-```{r pacotes2, warning=FALSE, echo=FALSE}
+```{r pacotes2, warning=FALSE, message=FALSE, echo=FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
-require(forestmangr) # Distribuição diamétrica
 require(readr) # abrir arquivos excel
 require(benford.analysis) # Análise de benford
-require(ggplot2) #Criação de gráficos
-require(scales) #Edição de gráficos
 require(vegan) # Índices de diversidade
-require(outliers) #Detecção de outliers
 require(moments) #Curtose e assimetria
+require(gamlss) #Distribuicao
+require(ggplot2) #graficos
+require(grid)
+require(gridExtra)
+require(bayesplot) #GraficoBayes
 
 ```
 
@@ -32,6 +31,12 @@ calcVtcc = function(dap){
 }
 
 invMerged$vol = calcVtcc(invMerged$DBH)
+
+
+inv = invMerged %>% filter(area == "BON_A01") %>% filter(year == "2014")
+
+rm(invMerged, calcVtcc)
+
 ```
 
 
@@ -116,7 +121,7 @@ for(i in distDian$cc) {
   }
 }
 
-dadosReferencia$licourt = mean(na.omit(distDian$q))
+dadosReferencia$liocourt = mean(na.omit(distDian$q))
 
 rm(distDian, i)
 ```
@@ -354,7 +359,8 @@ rm(shannon, simpson, pielou)
 Dectecção de outliers de espécies de valor econômico... >Q75+1.5 IQR ou <Q25 - 1.5 IQR
 
 ```{r outlier, echo=FALSE, eval=FALSE}
-comerciais = read.csv('./auxiliar/comercial.csv') %>% filter(comercial == 1)
+comerciais = read.csv("./data/comerciais.csv") %>% filter(comercial == 1)
+
 
 dout = boxplot(inv$DBH)$out
 out = inv %>%
@@ -363,18 +369,77 @@ out = inv %>%
 
 dadosReferencia$outliersCommerciais = dim(out)[1]
 
-rm(dout, out)
+rm(dout, out, comerciais)
 ```
+
+Distribuicao dos indices (Pacote)...
+```{r distribuicao, echo=FALSE, eval=FALSE}
+
+distnParc = fitDist(dadosReferencia$nParc, k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
+
+distnParc = dist$family [1]
+
+
+distDadosInv= data.frame(nParc = distnParc)
+
+
+```
+
+
+
+```{r distribuicao, echo=FALSE, eval=FALSE}
+
+for(i in 2:ncol(dadosReferencia)){
+ print(ggplot(data=dadosReferencia, aes(x = dadosReferencia[,i])) + 
+      geom_density(col="black", 
+                     fill="blue", 
+                     alpha = .1)+
+            theme_classic()+
+            geom_density(col ="red" )+
+        labs(x = "Val", y = "Freq")+
+        labs(title= dadosReferencia[,i]))
+}
+rm(i)
+
+```
+
+
+```{r media, echo=FALSE, eval=FALSE}
+
+for (i in 2:ncol(dadosReferencia)) {
+  print(mean(dadosReferencia[,i]))
+}
+rm(i)
+
+```
+
+
+```{r desvPad, echo=FALSE, eval=FALSE}
+
+for (i in 2:ncol(dadosReferencia)) {
+  print(sd(dadosReferencia[,i]))
+}
+rm(i)
+```
+
+
 
 ## O teste Bayesiano
 
 Ao receber um inventário como parte de um processo de intervenção ambiental, o analista pode comparar os valores dos indicadores com as referências. Para isto, a estatisticas Bayesiana pode ser aplicado em que a referência indica a distribuição *a priori*. E o novo inventario sera usado para calcular a distribuição *a posteriori*.
 
 ```{r}
-post = stan_glm(ida ~ 1, 
+novo = read.csv("./data/ANA_A01_2015_2018_Inventory.csv")%>%
+  filter(DBH.2015 > 0)
+
+```
+
+
+```{r}
+post = stan_glm(DBH.2015 ~ 1, 
                 family = gaussian(link = 'identity'), 
                 data = duvida,
-                prior_intercept = normal(1, 0.20))
+                prior_intercept = normal(26.51, 6.6))
 ```
 
 ```{r}
