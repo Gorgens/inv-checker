@@ -3,7 +3,7 @@ title: "Resultados"
 output: html_document
 ---
 
-```{r pacotes3, warning=FALSE, message = FALSE, echo=FALSE}
+```{r pacotes3, warning=FALSE, echo=FALSE}
 require(rstanarm) #Bayes
 require(dplyr) #Manipulação de dados
 require(tidyverse)#Manipulação de dados
@@ -20,7 +20,7 @@ require(bayesplot) #GraficoBayes
 
 Selecionando área para extração das métricas ... 
 
-```{r processamento, warning=FALSE, message=FALSE, echo=FALSE}
+```{r processamento, echo=FALSE}
 
 invMerged = read.csv("./data/invMerged v2.csv") %>%
   filter(DBH > 0)
@@ -418,7 +418,7 @@ for(l in seq(1, dim(locais)[1], 1)){
     
     rm(shannon, simpson, pielou)
     
-    comerciais = read.csv("./auxiliar/comercial.csv") %>% filter(comercial == 1)
+    comerciais = read.csv("./data/comerciais.csv") %>% filter(comercial == 1)
     
     dout = boxplot(inv$DBH)$out
     out = inv %>%
@@ -438,26 +438,70 @@ for(l in seq(1, dim(locais)[1], 1)){
 rm(locais)
 ```
 
+O conjunto de 37 inventários florestais contabilizaram ao todo 37.109 árvores, delimitadas em 497 parcelas, distribuídas entre regiões que se encontram dentro da área conhecida como Amazônia Legal. A partir desse conjunto de dados, foram identificados 98 possíveis indicadores esperados em um inventário em conformidade, ou seja, ausência de erros durante o processo de execução e/ou ausência de indicativo de uma possível fraude. 
 
-```{r padronizacao, echo=FALSE, eval=FALSE}
+As primeiras métricas avaliadas estão relacionadas a medidas de dispersão, medidas de tendência central e medidas de forma, com a aplicação da estatística descritivas nas variáveis volume e diâmetro a altura do peito (DAP), sendo essas variáveis comumente encontradas em inventários de floretas nativas. 
 
-dadosReferencia = dadosReferencia %>% 
-  replace(is.na(.), 0)
+Considerando o desvio padrão observado para a média do volume, pode-se entender que existe grandes diferenças produtivas entre as áreas inventariadas, podendo apontar baixa eficiência desse indicador. Diferente do observado para a variável DAP, onde podemos inferir também, que a mesma apresenta curva de distribuição do tipo Leptocúrtica e forma altamente assimétrica positiva (direita), o que justifica a grande parte dos indicadores terem sido classificados com distribuição exponencial (Tabela 01).
+
+Tabela 01 - Análise exploratória da base de dados.
+Fonte: Elaborado pelo autor do trabalho.
 
 
-```
+O ajuste de um modelo nos permite resumir e armazenar nos coeficientes as características dos dados, nesse caso, o comportamento médio da distribuição diamétrica observada em todos os inventários. Pode ser observado na tabela 02, que ambos os coeficientes apresentaram distribuição do tipo Gumbel Mínimo, característico de uma distribuição que apresenta assimetria negativa (esquerda). 
+
+Tabela 02 - Distribuição diamétrica – Aplicação do modelo de Meyer.
+Fonte: Elaborado pelo autor do trabalho
 
 
-```{r hist, echo=FALSE, eval=FALSE}
+O quociente de Lioncourt (“q” de Lioncourt), estabelece a razão entre o número de indivíduos em classes diamétricas consecutivas, ou seja, ele indica a forma e o grau de inclinação da curva de distribuição diamétrica. Na tabela 03, é observado baixo desvio dos valores médios do quociente em relação à média, dessa forma, pode ser entendido que os inventários analisados apresentam comportamento de ingresso, crescimento e mortalidade semelhantes. 
 
-for (i in 2:ncol(dadosReferencia)) {
-print(hist(dadosReferencia[,i]))
-  
-}
+Tabela 03 - Quociente de Liocourt.
+Fonte: Elaborado pelo autor do trabalho.
 
-rm(i)
 
-```
+A Lei de Benford foi aplicada a variável DAP, distribuição das famílias, gêneros e espécies, pelo fato de essas informações serem consideradas aleatórias. No entanto, foi observado conformidade apenas para os dois primeiros dígitos do DAP, sendo que o mesmo foi o único a apresentar distribuição normal. Os demais indicadores apresentaram valores superiores a 0,015, sendo considerados dados com inconformidade de acordo com a Lei de Benford.
+
+Tabela 04 - Lei de Benford. Onde: MAD = Desvio Absoluto Médio.
+Fonte: Elaborado pelo autor do trabalho.
+
+
+A densidade de Kernel representa a forma da distribuição dos dados, neste caso, o valor de BW, foi utilizado para descrever o grau de suavização observado na distribuição das espécies, famílias e gêneros coletados nos inventários florestais. Nas três ocasiões, foi observado a distribuição do tipo Exponencial Assimétrica positiva (Tabela 05), podendo ser explicada pela variação no número de espécies, gêneros e famílias, amostrados nas diferentes áreas.   
+
+Tabela 05 - Densidade de Kernel. Onde: BW = Bandwidth (Largura de banda).
+Fonte: Elaborado pelo autor do trabalho. 
+
+
+Ao identificar as espécies abundantes na região de estudo, foram calculados seus respectivos valores de frequência relativa, dominância relativa e densidade relativa. Os resultados são apresentados na tabela 06, podendo ser observado que em sua maioria as espécies foram classificadas como distribuição t de Student. Outro fator a ser observado são os altos valores de desvio padrão, podendo ser um indicativo de baixa representatividade destes indicadores para a metodologia. 
+
+Tabela 06 - Estrutura Horizontal - Espécies mais abundantes. Onde: FR = Frequência Relativa, DoR = Dominância Relativa, DR = Densidade relativa.
+Fonte: Elaborado pelo autor do trabalho.
+
+
+Assim como para o indicador anterior, o Índice de distribuição espacial de Payandeh, foi aplicado apenas para as espécies que apresenta abundância na região de estudo. Novamente é observado altos valores de desvio padrão, entretanto, já pode ser observado maior variação na classificação da distribuição do índice de Payandeh médio entre as espécies (Tabela 07). 
+
+Tabela 07 - Índice de distribuição espacial - Espécies mais abundantes. Onde: I.P.= Índice de Payandeh.
+Fonte: Elaborado pelo autor do trabalho.
+
+
+O modelo de Reineke é amplamente utilizado quando deseja-se obter informações a respeito da densidade do povoamento. Neste sentido, foi ajustado o modelo de Reineke para todos os inventários, e obtidos os respectivos valores dos coeficientes médios. Como observado na tabela 08, ambos os coeficientes apresentação um padrão de distribuição do tipo Exponencial Assimétrica, além de apresentar um grau de dispersão dos dados relativamente alto em relação à média geral. 
+
+Tabela 08 - Regra de Reineke. 
+Fonte: Elaborado pelo autor do trabalho.
+
+
+A organização da biodiversidade é um importante fator a ser entendido quando deseja-se compreender os padrões de uma comunidade. Para isso, foi calculado a diversidade Alfa para cada inventário por meio dos índices de Shannon-Weiner, índice de Simpson e Equabilidade de Pielou. Podem ser observados para os três indicadores, baixa variação dos dados em relação à média geral apresentada (Tabela 09), indicando que as áreas amostradas apresentam o equilíbrio de sistemas ecológicos semelhantes, com alta uniformidade da distribuição dos indivíduos entre as espécies existentes. 
+
+Tabela 09 - Diversidade Alfa.
+Fonte: Elaborado pelo autor do trabalho.
+
+
+Novamente aplicado apenas as espécies de maior abundância, com base no DAP, foi obtido o número médio de outliers observado nos inventários analisados. Nota-se um alto valor do desvio padrão, o que pode indicar baixa eficiência deste indicador para a metodologia proposta. 
+
+Tabela 10 - Detecção de outliers -Espécies de valor econômico.
+Fonte: Elaborado pelo autor do trabalho.
+
+Na figura 4, pode ser observado os gráficos de distribuição dos dados observados juntamente com a distribuição ajustada para cada indicador. 
 
 
 ```{r infApriori, echo=FALSE, eval=FALSE}
@@ -558,67 +602,5 @@ rm(dist, i)
 #rm(df, dist, ind,i , num_linhas)
 
 ```
-
-
-```{r grafico, echo=FALSE, eval=FALSE}
-
-
-
-
-
-rm()
-```
-
-
-
-
-
-
-
-
-
-
-
-> mcmc_areas(post)
-> summary(post)
-
-Model Info:
- function:     stan_glm
- family:       gaussian [identity]
- formula:      DBH.2015 ~ 1
- algorithm:    sampling
- sample:       4000 (posterior sample size)
- priors:       see help('prior_summary')
- observations: 3763
- predictors:   1
-
-Estimates:
-              mean   sd   10%   50%   90%
-(Intercept) 23.0    0.3 22.7  23.0  23.3 
-sigma       15.8    0.2 15.6  15.8  16.0 
-
-Fit Diagnostics:
-           mean   sd   10%   50%   90%
-mean_PPD 23.0    0.4 22.5  23.0  23.5 
-
-The mean_ppd is the sample average posterior predictive distribution of the outcome variable (for details see help('summary.stanreg')).
-
-MCMC diagnostics
-              mcse Rhat n_eff
-(Intercept)   0.0  1.0  2443 
-sigma         0.0  1.0  2770 
-mean_PPD      0.0  1.0  3022 
-log-posterior 0.0  1.0  1605 
-
-For each parameter, mcse is Monte Carlo standard error, n_eff is a crude measure of effective sample size, and Rhat is the potential scale reduction factor on split chains (at convergence Rhat=1).
-> posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
-
-Drawing from prior...
-> posterior_vs_prior(post, group_by_parameter = TRUE, prob = 0.9)
-
-Drawing from prior...
-> mcmc_areas(post)
-> View(dadosReferencia)
-> hist(dadosReferencia$dapQ3)
 
 
