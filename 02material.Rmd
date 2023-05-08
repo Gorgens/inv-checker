@@ -20,20 +20,18 @@ require(bayesplot) #GraficoBayes
 ```
 
 
-Para o desenvolvimento desta pesquisa, foram utilizados dados provenientes de 37 inventários florestais realizados em regiões que se encontram dentro da área administrativa conhecida como Amazônia Legal, nos estados do Acre: Porto Acre, Rio Branco, Senador Guimard; Amazonas: Manaus; Mato Grosso: Feliz Natal, Querência; Pará: Belterra, Oriximiná, Paragominas, São Félix do Xingu, Tomé-Açu; e Rondônia: Itapuã do Oeste (Figura 1). Está região abriga a maior floresta tropical do mundo, onde aproximadamente 65% da área é coberta por florestas de Terra Firme, caracterizando-se pelo elevado número de espécies arbóreas, com grande diversidade florística [@oliveira2004]. O conjunto de dados foram disponibilizados pelo projeto Sustainable Landscapes Brazil, apoiado pela Agência dos Estados Unidos para o Desenvolvimento Internacional (USAID) e pelo Departamento de Estado dos EUA.
+Para o desenvolvimento desta pesquisa, foram utilizados dados provenientes de 36 inventários florestais realizados em diferentes regiões da Amazônia Legal. Esta região abriga a maior floresta tropical do mundo, onde aproximadamente 65% da área é coberta por florestas de Terra Firme, caracterizando-se pelo elevado número de espécies arbóreas, com grande diversidade florística [@oliveira2004]. Os inventários estão distribuídos nos estados do Acre: Porto Acre, Rio Branco e Senador Guimard; Amazonas: Manaus; Mato Grosso: Feliz Natal e Querência; Pará: Belterra, Oriximiná, Paragominas, São Félix do Xingu e Tomé-Açu; e Rondônia: Itapuã do Oeste (Figura 1). O conjunto de dados foram obtidos pelo projeto Paisagens Sustentáveis Brasil da Embrapa.
 
 ```{r map, fig.align = 'center', out.width = "60%",fig.cap = "Figura 1 – Área de estudo e localização das parcelas."}
 knitr::include_graphics(here::here("imagens", "locpac.png"))
 ```
 Fonte: Elaborado pelo autor do trabalho. Os dados são disponibilizados por (SLB, 2018 & IBGE, 2021).
 
-2.1.	 Extração dos padrões 
+2.1.	 Obtenção dos indicadores 
 
 Os inventários florestais foram executados entre os anos de 2009 e 2018, seguindo diferentes processos de amostragem, tais como: Amostragem aleatório simples (parcelas quadradas, parcelas quadradas com subparcelas, parcelas retangulares com subparcelas), Amostragem sistemática (parcelas quadradas, parcelas quadradas com subparcelas) e processo de amostragem em linhas (f = 10 cm).
 
-O critério de inclusão dentro das parcelas e subparcelas levava em consideração o diâmetro a altura do peito (DAP). A variação de inclusão dentro das parcelas era de indivíduos que apresentavam DAP ≥ 5 e DAP ≥ 35. Dentro das subparcelas, a variação no DAP se mantinha entre indivíduos com DAP ≥ 5 e DAP ≥ 10, a depender da área amostrada. Para os inventários que seguiram processo de amostragem em linhas, todos os indivíduos ao longo das linhas de referência com DAP ≥ 5 centímetros foram mensurados.
-
-Como completos as métricas comumente coletadas em inventários florestais, foram identificadas para cada indivíduo as seguintes informações: nome científico, nome popular, família botânica, árvore morta ou viva e coordenadas geográficas (UTM Easting/UTM Northing).
+O critério de inclusão dentro das parcelas e subparcelas levava em consideração o diâmetro a altura do peito (DAP). A variação de inclusão dentro das parcelas era de indivíduos que apresentavam DAP ≥ 5 e DAP ≥ 35. Dentro das subparcelas, a variação no DAP se mantinha entre indivíduos com DAP ≥ 5 e DAP ≥ 10, a depender da área amostrada. Para os inventários que seguiram processo de amostragem em linhas, todos os indivíduos ao longo das linhas de referência com DAP ≥ 5 centímetros foram mensurados. Em todos os inventários, as métricas comumente coletadas foram registradas para cada indivíduo incluindo: nome científico, nome popular, família botânica, situação da árvore (morta ou viva) e coordenadas geográficas (UTM Easting/UTM Northing).
 
 A análise exploratória da base de dados, precedeu as demais análises estatísticas. Foi realizado uma varredura completa na base com o objetivo de limpeza e organização, facilitando a visualização dos dados. Foram identificados e excluídos dados inconscientes e indivíduos que não apresentavam valores de diâmetro a altura do peito (DAP). Foram feitas também, revisões ortográficas na grafia dos nomes científicos, nomes populares e família botânica.  O fluxograma referente ao processamento do trabalho, a começar pela etapa de análise descritiva pode ser observado na Figura 2.
 
@@ -41,8 +39,6 @@ A análise exploratória da base de dados, precedeu as demais análises estatís
 knitr::include_graphics(here::here("imagens", "elaProj2.jpeg"))
 ```
 Fonte: Elaborado pelo autor do trabalho. Construção da base de dados de referência (informações a priori).
-
-O conhecimento da dinâmica da floresta, especialmente por meio do estudo de sua estrutura é o ponto de partida para entender o comportamento de diversos fenômenos que compõem a floresta [@santos2017]. O entendimento da organização de uma floresta, possibilita identificar padrões comumente encontrados em áreas de mesma fitofisionomia. Para isso, foram analisadas diferentes variáveis e empregado análises para extração de indicadores que podem ser entendidos como possíveis padrões em dados de inventários florestais. 
 
 
 ```{r prepDados, warning=FALSE, echo=FALSE, eval=FALSE}
@@ -63,9 +59,9 @@ rm(invMerged, calcVtcc)
 ```
 
 
-2.1.1.	Análise exploratória da base de dados 
+2.1.1.	Estatísticas básicas 
 
-A análise exploratória consistiu na aplicação de métricas estatísticas comumente aplicação em base de dados com o intuito de resumi-las, para o melhor entendimento, sendo elas: (a) Média, mediana, valor máximo, desvio padrão, coeficiente de variação, primeiro quartil, terceiro quartil, distância interquartílica, assimetria e curtose da variável do diâmetro a altura do peito e (b) Média do volume por hectare.
+Foram calculadas as estatísticas básicas comumente utilizadas para descrever bases de dados florestais como: (a) Média, mediana, valor máximo, desvio padrão, coeficiente de variação, primeiro quartil, terceiro quartil, distância interquartílica, assimetria e curtose da variável do diâmetro a altura do peito e (b) Média do volume por hectare.
 
 
 ```{r analiseExplor, echo=FALSE, eval=FALSE}
@@ -115,14 +111,13 @@ rm(N_par, N_arv, vol_h, Media, Mediana, DAP_maximo, Desvio_padrao, Coef_Var,
 
 2.1.2.	Distribuição diamétrica
 
-A estrutura de florestas multiâneas, tem como característica a presença de uma distribuição diamétrica que segue comportamento semelhante à figura de “J” invertido (Figura 3). A partir dessa informação, considerando a distribuição diamétrica em “J” invertido como um padrão observado em inventários florestais realizados em florestas nativas [@de2018], foi calculado a distribuição diamétrica e posteriormente ajustado o modelo de Meyer para cada inventário florestal presente na base de dados.
+A estrutura de florestas multiâneas, tem como característica a presença de uma distribuição diamétrica que segue comportamento semelhante à figura de “J” invertido (Figura 3). Após a organização das árvores em classes diamétricas, foi ajustado o modelo de Meyer (1952), convencionalmente utilizada para estimar o número de indivíduos por hectare observados por classe diamétrica (Equação 1). 
 
 ```{r Representation, fig.align = 'center', out.width = "60%",fig.cap = "Figura 3 – Representação da distribuição diamétrica em florestas multiâneas."}
 knitr::include_graphics(here::here("imagens", "dd.png"))
 ```
 Fonte: Autor.
 
-Após definido a amplitude entre as classes diamétricas, foi ajustado o modelo de Meyer (1952), convencionalmente utilizada para estimar o número de indivíduos por hectare observados por classe diamétrica (Equação 1). Os parâmetros “βn” obtidos através do ajuste do modelo, foram extraídos e utilizados como possíveis indicadores.
 
 $$y= β_0 . e^(β_1 . x)+ε$$
 em que: y = densidade de indivíduos por classe de diâmetro; βn= parâmetros a serem estimados; x = valor central da classe diamétrica; e ε = resíduo do modelo.
@@ -141,9 +136,10 @@ dadosReferencia$meyerB1 = coef(lmMeyer)[2]
 
 rm(distDian, lmMeyer)
 ```
+
 2.1.3.	Quociente de Liocourt
 
-Liocourt (1898), tinha como proposta descrever as características de uma floresta denominada “normal” a partir da avaliação de florestas irregulares. Com isso, foi constatado que em povoamentos multianos existe certo equilíbrio entre o número de árvores com os centros de classes sucessivos [@reis2014]. Considerando essa informação como um potencial indicador da estrutura da floresta, foi obtido a média e o desvio padrão do quociente ‘q’ De Liocourt para a distribuição diamétrica estimada (Equação 2), através do modelo de Meyer (Equação 1). Tais valores foram utilizados como possíveis indicadores.
+Liocourt (1898) tinha como proposta descrever as características de uma floresta denominada “equilibrada”, em que deve existir um equilíbrio entre o número de árvores em centros de classes sucessivos [@reis2014]. Considerando essa informação como um potencial indicador da estrutura da floresta, foi obtido a média e o desvio padrão do quociente ‘q’ De Liocourt para a distribuição diamétrica estimada (Equação 2), através do modelo de Meyer (Equação 1).
 
 $$q=  N_j/(N_j+1)$$
 em que: q = quociente de De Liocourt; Nj= número de árvores da classe de DAP; Nj+1= número de árvore da classe de DAP subsequente, mais a constante de valor 1. 
@@ -171,7 +167,7 @@ rm(distDian, i)
 
 2.1.4.	Lei de Benford 
 
-Conhecida como a lei do primeiro dígito, ou lei dos números anômalos, a Lei de Benford considera a probabilidade de frequência do primeiro dígito válido, diferente de zero [@benford1938]. De acordo com Benford (1938), dados produzidos de forma natural não seguem distribuição homogênea, ou seja, os números naturais de 1 a 9, apresentam diferentes probabilidade de ocorrência, com frequências que seguem um comportamento logarítmico. Expresso pela equação 3:
+Conhecida como a lei do primeiro dígito, ou lei dos números anômalos, a Lei de Benford considera a probabilidade de frequência do primeiro dígito válido, diferente de zero [@benford1938]. De acordo com Benford (1938), dados produzidos de forma natural não seguem distribuição homogênea, ou seja, os números naturais de 1 a 9, apresentam diferentes probabilidade de ocorrência, com frequências que seguem um comportamento logarítmico, expresso pela equação 3.
 
 $$P_r (x)= Log10  (x+1)/x$$
 em que: Pr = probabilidade de ocorrência do primeiro dígito; Log10 = logaritmo na base 10; e x = primeiro dígito. 
@@ -183,7 +179,7 @@ knitr::include_graphics(here::here("imagens", "lb.png"))
 ```
 Fonte: Autor.
 
-Considerando a premissa de que a distribuição do primeiro dígito segue um padrão de frequência, a Lei de Benford (Equação 3) foi aplicada a distribuição das variáveis: diâmetro a altura do peito (primeiro e aos dois primeiros dígitos), número de espécie, número de gêneros e número de famílias, em todos os inventários presentes na base de dados. E os valores do desvio médio absoluto (Equação 4) obtidos para cada variável, foram utilizados como possíveis indicadores.
+Considerando a premissa de que a distribuição do primeiro dígito segue um padrão de frequência, a Lei de Benford (Equação 3) foi aplicada a distribuição das variáveis: diâmetro a altura do peito (primeiro e aos dois primeiros dígitos), número de espécie, número de gêneros e número de famílias, em todos os inventários presentes na base de dados.Os valores do desvio médio absoluto (Equação 4) foram então determinados para cada variável.
 
 $$DMA= ∑(| x_i-x ̅|)/n$$
 em que: DMA = desvio médio absoluto; xi = desvio dos valores observados em relação à média; e x ̅ = média aritmética. 
@@ -240,7 +236,7 @@ rm(benf01, benf02, benfFam, benfGen, benfEsp)
 
 2.1.5.	Densidade de Kernel 
 
-Existem diversas técnicas que podem ser utilizadas para descrever a forma da distribuição dos dados, dentre elas, destaca-se a estimação por meio da função de Kernel. Originalmente, a função foi criada com objetivo de obter a estimativa suavizada da densidade de probabilidade (Univariada ou Bivariada) com base em uma amostra de dados [@bailey1995]. Dessa forma, foi calculado a estimativa suave da densidade de probabilidade por meio da função de Kernel para as variáveis número de espécie, número de gêneros e número de famílias. O parâmetro ‘τ’ é conhecido como largura de banda (Bandwidth) que determina a quantidade de suavização, sendo esse valor utilizado como possível indicador. 
+Existem diversas técnicas que podem ser utilizadas para descrever a forma da distribuição dos dados, dentre elas, destaca-se a estimação por meio da função de Kernel. Originalmente, a função foi criada com objetivo de obter a estimativa suavizada da densidade de probabilidade (Univariada ou Bivariada) com base em uma amostra de dados [@bailey1995]. Dessa forma, foi calculado a estimativa suavizada da densidade de probabilidade por meio da função de Kernel para as variáveis número de espécie, número de gêneros e número de famílias. O parâmetro ‘τ’ é conhecido como largura de banda (Bandwidth) que determina a intensidade da suavização, sendo esse valor utilizado como variável indicadora. 
 
 
 ```{r Kernel, echo=FALSE, eval=FALSE}
@@ -258,7 +254,7 @@ rm(dkEsp, dkFam, dkGen, distFamilia, distGenero, distEsp)
 
 2.1.6.	Estrutura Horizontal
 
-Para o entendimento da estrutura horizontal da floresta, foram calculados os seguintes parâmetros: frequência absoluta (Equação 5), frequência relativa (Equação 6), dominância Absoluta (Equação 7), dominância relativa (Equação 8), densidade relativa (Equação 9) e valor de importância (Equação 10). Esses cálculos foram realizados com base no artigo de [@de2022], onde os autores citam as espécies mais abundantes na região, sendo elas: Aspidosperma excelsum, Bertholletia excelsa, Caryocar villosum, Conceveiba guianensis, Couratari guianensis, Dinizia excelsa, Dipteryx odorata, Eperua rubiginosa, Eschweilera coriacea, Goupia glabra, Manilkara huberi, Micropholis venulosa, Minquartia guianensis, Nectandra rubra, Qualea albiflora, Sloanea grandiflora e Tabebuia serratifolia. Onde os resultados obtidos para as espécies citadas anteriormente foram utilizados como possíveis indicadores.
+Para o entendimento da estrutura horizontal da floresta, foram calculados os seguintes parâmetros: frequência absoluta (Equação 5), frequência relativa (Equação 6), dominância Absoluta (Equação 7), dominância relativa (Equação 8), densidade relativa (Equação 9) e valor de importância (Equação 10). Esses cálculos foram realizados com base no artigo de [@de2022], onde os autores citam as espécies mais abundantes na região, sendo elas: Aspidosperma excelsum, Bertholletia excelsa, Caryocar villosum, Conceveiba guianensis, Couratari guianensis, Dinizia excelsa, Dipteryx odorata, Eperua rubiginosa, Eschweilera coriacea, Goupia glabra, Manilkara huberi, Micropholis venulosa, Minquartia guianensis, Nectandra rubra, Qualea albiflora, Sloanea grandiflora e Tabebuia serratifolia. Os resultados obtidos para as espécies citadas anteriormente foram utilizados como possíveis indicadores.
 
 •	Frequência Absoluta (Número que parcelas que a espécie aparece em relação ao total de parcelas): 
 $$FA_i=  (N° Esp.UA)/UA$$
@@ -409,7 +405,7 @@ rm(indicePayandeh, estruturaEspacial, cod, eoi, i)
 
 2.1.8.	Regra de Reineke
 
-Para o cálculo de densidade de indivíduos será empregado a equação 11 [@reineke1933], que implica na relação entre o número de árvores por hectare e o diâmetro médio quadrático do povoamento. Reineke (1933) observou que em povoamentos com densidade completa existe uma relação linear, em escala logarítmica entre ambas as variáveis. Segundo o autor, os parâmetros obtidos pela equação não apresentam dependência com a idade e com o índice de sítio do local, além de apresentar coeficiente angular constante igual a -1,605. Com isso, os parâmetros “βn”, obtidos através do ajuste do modelo, serão utilizados como indicadores.
+Para o cálculo de densidade de indivíduos foi empregado a equação 11 [@reineke1933], que implica na relação entre o número de árvores por hectare e o diâmetro médio quadrático do povoamento. Reineke (1933) observou que em povoamentos com densidade completa existe uma relação linear, em escala logarítmica entre ambas as variáveis. Segundo o autor, os parâmetros obtidos pela equação não apresentam dependência com a idade e com o índice de sítio do local, além de apresentar coeficiente angular tendendo a -1,605. Com isso, os parâmetros “βn”, obtidos através do ajuste do modelo, foram utilizados como indicadores.
 
 $$ln⁡(N)= b_0-b_1.ln⁡(d)$$
 em que: d = diâmetro médio quadrático; N = número de árvores por hectare; β = taxa máxima de auto desbaste sobre o povoamento de densidade completa.
@@ -432,7 +428,7 @@ rm(reineke, lmRein)
 
 2.1.9.	Diversidade Alfa 
 
-Para avaliar a diversidade alfa observadas nas áreas amostradas serão utilizados os índices de Shannon-Wienner (Equação 12), que atribui maior peso a espécies raras, o índice de Simpson (Equação 13), que é pouco influenciado por espécies raras e a Equabilidade de Pielou (Equação 14), que representa o quão similar as espécies estão representadas na comunidade.
+Para avaliar a diversidade alfa observadas nas áreas amostradas foram utilizados o índice de Shannon-Wienner (Equação 12), que atribui maior peso a espécies raras; o índice de Simpson (Equação 13), que é pouco influenciado por espécies raras; e a equabilidade de Pielou (Equação 14), que representa o quão equilibradas as espécies estão representadas na comunidade.
 
 •	Diversidade: Shannon-Wiener (H’):
 $$H'=N .ln⁡N- ∑_i=_1^Sln⁡(n_i)/N$$
@@ -476,44 +472,27 @@ dadosReferencia$outliersCommerciais = dim(out)[1]
 rm(dout, out, comerciais)
 ```
 
-2.1.11.	Aplicação do modelo bayesiano
 
-Após calculados os atributos para cada inventário presente na base de dados, será criado uma tabela denominada “Dados de Referência”. A partir dessa nova base de dados, serão calculados os valores de média e desvio padrão, e por meio do pacote “Gamlss” serão identificados os tipos de distribuição de cada atributo.  Essas informações serão os valores a priori utilizados no modelo Bayesiano que será ajustado por meio do pacote “Rstanarm”. Com isso, sempre que um novo inventário de entrada na rotina de processamento, a probabilidade condicional de conformidade será calculada por meio da atualização Bayesiana e a probabilidade de uma possível fraude é indicada. Novas bases de dados poderão ser implementadas aos “Dados de Referência”, de forma que torne a metodologia mais robusta e precisa.  
+2.2 Distribuições *a priori*
 
-```{r media, echo=FALSE, eval=FALSE}
+Após calculados os indicadores para cada inventário presente na base de dados, foram calculados os valores de média e desvio padrão, e por meio do pacote “Gamlss” foram identificados os tipos de distribuição que melhor descreveu cada indicador.  
+
+```{r infApriori, echo=FALSE, eval=FALSE}
 
 for (i in 2:ncol(dadosReferencia)) {
-  print(mean(dadosReferencia[,i]))
+     medias = mean(dadosReferencia[,i])
+     desvPads = sd(dadosReferencia[,i])
+     
+     distnParc = fitDist(dadosReferencia$reinekeB1, k = 2, type = "realline", trace = FALSE,      try.gamlss = TRUE)
+
+    distnParc = dist$family [1]
 }
 rm(i)
 
 ```
 
 
-```{r desvPad, echo=FALSE, eval=FALSE}
-
-for (i in 2:ncol(dadosReferencia)) {
-  print(sd(dadosReferencia[,i]))
-}
-rm(i)
-```
-
-```{r distribuicao, echo=FALSE, eval=FALSE}
-
-distnParc = fitDist(dadosReferencia$nParc, k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
-
-distnParc = dist$family [1]
-
-
-distDadosInv= data.frame(nParc = distnParc)
-
-
-```
-
-
-## O teste Bayesiano
-
-Ao receber um inventário como parte de um processo de intervenção ambiental, o analista pode comparar os valores dos indicadores com as referências. Para isto, a estatisticas Bayesiana pode ser aplicado em que a referência indica a distribuição *a priori*. E o novo inventario sera usado para calcular a distribuição *a posteriori*.
+Essas informações são os valores a priori utilizados no modelo Bayesiano que foi ajustado por meio do pacote “Rstanarm”. Com isso, sempre que um novo inventário de entrada na rotina de processamento, a probabilidade condicional de conformidade será calculada por meio da atualização Bayesiana e a probabilidade de uma possível fraude é indicada. Novas bases de dados poderão ser incorporada aos “Dados de Referência”, de forma que torne a metodologia mais robusta e precisa. Cada novo inventário deverá ser comparado com as distribuições de referências. Para isto, a estatistica Bayesiana será aplicado visando atualizar a distribuição *a priori*.
 
 ```{r}
 novo = read.csv("./data/ANA_A01_2015_2018_Inventory.csv")%>%

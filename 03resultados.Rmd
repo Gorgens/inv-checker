@@ -438,7 +438,7 @@ for(l in seq(1, dim(locais)[1], 1)){
 rm(locais)
 ```
 
-O conjunto de 37 inventários florestais contabilizaram ao todo 37.109 árvores, delimitadas em 497 parcelas, distribuídas entre regiões que se encontram dentro da área conhecida como Amazônia Legal. A partir desse conjunto de dados, foram identificados 98 possíveis indicadores esperados em um inventário em conformidade, ou seja, ausência de erros durante o processo de execução e/ou ausência de indicativo de uma possível fraude. 
+O conjunto de 36 inventários florestais contabilizaram ao todo 37.109 árvores, delimitadas em 497 parcelas, distribuídas entre regiões que se encontram dentro da área conhecida como Amazônia Legal. A partir desse conjunto de dados, foram identificados 98 possíveis indicadores esperados em um inventário em conformidade, ou seja, ausência de erros durante o processo de execução e/ou ausência de indicativo de uma possível fraude. 
 
 As primeiras métricas avaliadas estão relacionadas a medidas de dispersão, medidas de tendência central e medidas de forma, com a aplicação da estatística descritivas nas variáveis volume e diâmetro a altura do peito (DAP), sendo essas variáveis comumente encontradas em inventários de floretas nativas. 
 
@@ -540,67 +540,482 @@ desvPad = data.frame(desvPad = double())
 
 priori = cbind(ind, family, media, desvPad) 
 
-#infApriori = subset(priori, !(row.names(priori) %in% c(1,2, 34,35,36, 46,47,48, 64,
-                                                       #65, 66, 67,68, 69, 70, 71,72,
-                                                       #79,83, 89,90,91)))
+infApriori = subset(priori, !(row.names(priori) %in% c(1,2, 34,35,36, 46,47,48, 64,
+                                                       65, 66, 67,68, 69, 70, 71,72,
+                                                       79,83, 89,90,91)))
                                 
-rm(desvPad, family,ind, media, desvPads,i, medias, dist)
+rm(desvPad, family,ind, media, desvPads,i, medias, dist, priori)
 
 
 ```
 
 
 ```{r coeficientes, echo=FALSE, eval=FALSE}
-muCoef = data.frame(muCoef = character())
-sigmaCoef = data.frame(sigmaCoef = character())
-nuCoef = data.frame(nuCoef = character())
+n_colunas = c(98)
+coefs = vector("list", n_colunas)
 
-  for(i in 2:ncol(dadosReferencia)){
+for (i in 2:ncol(dadosReferencia)) {
+
+  ajuste_completo = FALSE
+  while (!ajuste_completo) {
   
-  dist = fitDist(dadosReferencia [,i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
-  
- 
-    if (length(dist$mu.coefficients) > 0) {
-  muCoef[nrow(muCoef) + 1,] = list(dist$mu.coefficients)
-}
-
-    if (length(dist$sigma.coefficients) > 0) {
-  sigmaCoef[nrow(sigmaCoef) + 1,] = list(dist$sigma.coefficients)
-}
-
-    if (length(dist$nu.coefficients) > 0) {
-  nuCoef[nrow(nuCoef) + 1,] = list(dist$nu.coefficients)
-}
-
- 
+    coefs_i = fitDist(dadosReferencia[, i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)$Allpar 
+    
+    coefs[[i]] = coefs_i
+    ajuste_completo = TRUE
   }
+}
 
-#coefs1 = cbind(ind, muCoef, sigmaCoef, nuCoef)
+df_coeficientes = data.frame(do.call(rbind, lapply(coefs, function(x) {
+  if (length(x) < 4) { 
+    c(x, rep(NA, 4 - length(x)))
+  } else {
+    x
+  }
+})), stringsAsFactors = FALSE)
 
-rm(dist, i)
+names(df_coeficientes) = paste0("Parametro_", 1:4)
+
+
+coeficientes = subset(df_coeficientes, !(row.names(df_coeficientes) %in% 
+                                           c(1,2, 3, 35,36,37,                                                                           47,48,49, 65,66, 67,
+                                             68,69, 70, 71, 72,73,
+                                             80,84, 90,91,92)))
+
+
+infApriori = cbind(infApriori, coeficientes) 
+
+rm(coefs,ajuste_completo,coefs_i,i,n_colunas,df_coeficientes,coeficientes) 
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$meanVol, probability = TRUE, ylab = NULL, main = "Distribuição meanVol", xlab = NULL, cex = 1.5)
+
+curve(dt(x, df = infApriori$Parametro_3[1]), lwd = 2, lty = 4, col = "red", add = TRUE)
+curve(dnorm(x, mean = infApriori$Parametro_1[1], sd = infApriori$Parametro_2[1]), lwd = 2, lty = 4, col = "blue", add = TRUE)
+
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapAvg, probability = TRUE, ylab = NULL, main = "Distribuição dapAvg", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[2])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapMd, probability = T, ylab = NULL, main = "Distribuição dapMd", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[3])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapMax, probability = T, ylab = NULL, main = "Distribuição dapMax", xlab = NULL, cex = 1.5)
+
+
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapDp, probability = T, ylab = NULL, main = "Distribuição dapDp", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[5])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapCv, probability = T, ylab = NULL, main = "Distribuição dapCv", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[6])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapQ1, probability = T, ylab = NULL, main = "Distribuição dapQ1", xlab = NULL, cex = 1.5)
+
+curve(dnorm(x, mean = infApriori$Parametro_1[7], sd = infApriori$Parametro_2[7]), add = TRUE, lwd = 2, lty = 4, col = "red")
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapQ3, probability = T, ylab = NULL, main = "Distribuição dapQ3", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[8])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapIqr, probability = T, ylab = NULL, main = "Distribuição dapIqr", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[9])), lwd = 2, lty = 4, col = "red", add = TRUE)
 
 ```
 
 
-```{r coeficientes, echo=FALSE, eval=FALSE}
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapAss, probability = T, ylab = NULL, main = "Distribuição dapAss", xlab = NULL, cex = 1.5)
 
- for(i in 2:ncol(dadosReferencia)){
-  
-  dist = fitDist(dadosReferencia [,i], k = 2, type = "realline", trace = FALSE, try.gamlss = TRUE)
-  
- 
-  ind$muCoef[i] = list(dist$mu.coefficients)
-
-  ind$sigmaCoef[i] = list(dist$sigma.coefficients)
-
-  ind$nuCoef[i] = list(dist$nu.coefficients)
+curve(dexp(x, rate = (1/infApriori$Parametro_1[10])), lwd = 2, lty = 4, col = "red", add = TRUE)
 
 
- 
- }
+```
 
-#rm(df, dist, ind,i , num_linhas)
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dapCur, probability = T, ylab = NULL, main = "Distribuição dapCur", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$meyerB0, probability = T, ylab = NULL, main = "Distribuição meyerB0", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$meyerB1, probability = T, ylab = NULL, main = "Distribuição meyerB1", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$licourt, probability = T, ylab = NULL, main = "Distribuição licourt", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[14])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$benf1Mad, probability = T, ylab = NULL, main = "Distribuição benf1Mad", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[15])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$benf2Mad, probability = T, ylab = NULL, main = "Distribuição benf2Mad", xlab = NULL, cex = 1.5)
+
+curve(dnorm(x, mean = infApriori$Parametro_1[16], sd = infApriori$Parametro_2[16]), add = TRUE, lwd = 2, lty = 4, col = "red")
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$benfFam, probability = T, ylab = NULL, main = "Distribuição benfFam", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[17])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$benfGen, probability = T, ylab = NULL, main = "Distribuição benfGen", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[18])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$benfEsp, probability = T, ylab = NULL, main = "Distribuição benfEsp", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[19])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dkEsp, probability = T, ylab = NULL, main = "Distribuição dkEsp", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[20])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dkFam, probability = T, ylab = NULL, main = "Distribuição dkFam", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[21])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$dkGen, probability = T, ylab = NULL, main = "Distribuição dkGen", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[22])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Aefreq, probability = T, ylab = NULL, main = "Distribuição Aefreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Aedom, probability = T, ylab = NULL, main = "Distribuição Aedom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Aeden, probability = T, ylab = NULL, main = "Distribuição Aeden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Befreq, probability = T, ylab = NULL, main = "Distribuição Befreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Bedom, probability = T, ylab = NULL, main = "Distribuição Bedom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Beden, probability = T, ylab = NULL, main = "Distribuição Beden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cvfreq, probability = T, ylab = NULL, main = "Distribuição Cvfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cvdom, probability = T, ylab = NULL, main = "Distribuição Cvdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cvden, probability = T, ylab = NULL, main = "Distribuição Cvden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cugfreq, probability = T, ylab = NULL, main = "Distribuição Cugfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cugdom, probability = T, ylab = NULL, main = "Distribuição Cugdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cugden, probability = T, ylab = NULL, main = "Distribuição Cugden", xlab = NULL, cex = 1.5)
+
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Defreq, probability = T, ylab = NULL, main = "Distribuição Defreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Dedom, probability = T, ylab = NULL, main = "Distribuição Dedom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Deden, probability = T, ylab = NULL, main = "Distribuição Deden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Dofreq, probability = T, ylab = NULL, main = "Distribuição Dofreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Dodom, probability = T, ylab = NULL, main = "Distribuição Dodom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Doden, probability = T, ylab = NULL, main = "Distribuição Doden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ecfreq, probability = T, ylab = NULL, main = "Distribuição Ecfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ecdom, probability = T, ylab = NULL, main = "Distribuição Ecdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ecden, probability = T, ylab = NULL, main = "Distribuição Ecden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ggfreq, probability = T, ylab = NULL, main = "Distribuição Ggfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ggdom, probability = T, ylab = NULL, main = "Distribuição Ggdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ggden, probability = T, ylab = NULL, main = "Distribuição Ggden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mhfreq, probability = T, ylab = NULL, main = "Distribuição Mhfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mhdom, probability = T, ylab = NULL, main = "Distribuição Mhdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mhden, probability = T, ylab = NULL, main = "Distribuição Mhden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mvfreq, probability = T, ylab = NULL, main = "Distribuição Mvfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mvdom, probability = T, ylab = NULL, main = "Distribuição Mvdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mvden, probability = T, ylab = NULL, main = "Distribuição Mvden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mgfreq, probability = T, ylab = NULL, main = "Distribuição Mgfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mgdom, probability = T, ylab = NULL, main = "Distribuição Mgdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mgden, probability = T, ylab = NULL, main = "Distribuição Mgden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Tsfreq, probability = T, ylab = NULL, main = "Distribuição Tsfreq", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Tsdom, probability = T, ylab = NULL, main = "Distribuição Tsdom", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Tsden, probability = T, ylab = NULL, main = "Distribuição Tsden", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Aepayandeh, probability = T, ylab = NULL, main = "Distribuição Aepayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Bepayandeh, probability = T, ylab = NULL, main = "Distribuição Bepayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cvpayandeh, probability = T, ylab = NULL, main = "Distribuição Cvpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Cugpayandeh, probability = T, ylab = NULL, main = "Distribuição Cupayandeh", xlab = NULL, cex = 1.5)
 
 ```
 
 
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Depayandeh, probability = T, ylab = NULL, main = "Distribuição Depayandeh", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[63])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Dopayandeh, probability = T, ylab = NULL, main = "Distribuição Dopayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ecpayandeh, probability = T, ylab = NULL, main = "Distribuição Ecpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Ggpayandeh, probability = T, ylab = NULL, main = "Distribuição Ggpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mhpayandeh, probability = T, ylab = NULL, main = "Distribuição Mhpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mvpayandeh, probability = T, ylab = NULL, main = "Distribuição Mvpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Mgpayandeh, probability = T, ylab = NULL, main = "Distribuição Mgpayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Tspayandeh, probability = T, ylab = NULL, main = "Distribuição Tspayandeh", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$reinekeB0, probability = T, ylab = NULL, main = "Distribuição reinekeB0", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[71])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$reinekeB1, probability = T, ylab = NULL, main = "Distribuição reinekeB1", xlab = NULL, cex = 1.5)
+
+curve(dexp(x, rate = (1/infApriori$Parametro_1[72])), lwd = 2, lty = 4, col = "red", add = TRUE)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Simpson, probability = T, ylab = NULL, main = "Distribuição Simpson", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Shannon, probability = T, ylab = NULL, main = "Distribuição Shannon", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$Pielou, probability = T, ylab = NULL, main = "Distribuição Pielou", xlab = NULL, cex = 1.5)
+
+```
+
+```{r graficos, echo=FALSE, eval=FALSE}
+hist(dadosReferencia$outliersCommerciais, probability = T, ylab = NULL, main = "Distribuição outliersCommerciais", xlab = NULL, cex = 1.5)
+
+```
